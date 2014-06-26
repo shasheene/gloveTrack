@@ -1,0 +1,2 @@
+#define Glovetrack_VERSION_MAJOR @Glovetrack_VERSION_MAJOR@
+#define Glovetrack_VERSION_MINOR @Glovetrack_VERSION_MINOR@
