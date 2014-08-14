@@ -57,11 +57,11 @@ int main(int argc, char** argv){
 
     frame = captureFrame(captureDevice);
 
-    Rect boundingBox = locateGlove(frame); //Currently no tracking
+    Rect gloveRegion = locateGlove(frame); //Currently no tracking
     
-    rectangle(frame, boundingBox, Scalar(0,0,0)); //Draw rect tracking glove 
+    rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rect tracking glove 
     
-    Mat currentFrame = frame(boundingBox);
+    Mat currentFrame = frame(gloveRegion);
 
     Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
     Rect regionOfInterest(Point(30,100), shrunkFrame.size());
@@ -81,7 +81,7 @@ int main(int argc, char** argv){
     if( (char)c == 'p' ) {
       Mat photo;
       photo = captureFrame(captureDevice);
-      photo = photo(boundingBox);
+      photo = photo(gloveRegion);
       std::string imageOutputPath(concatStringInt(databasePath,numImagesTaken));
       imageOutputPath.append(".jpg");
       std::cerr << "P pressed. Saving photo in " << imageOutputPath << std::endl;

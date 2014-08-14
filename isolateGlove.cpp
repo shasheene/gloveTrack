@@ -39,11 +39,11 @@ Mat reduceDimensions(Mat region, int targetWidth, int targetHeight) {
     }
   }
 
-  //Reduce colour depth reduction table
+  //Reduce colour depth reduction table (simplifies future comparisons)
   uchar table[256];
   for (int i=0;i< 256; ++i) {
-    table[i] = (uchar)(10 * (i/10));
-    //table[i] = (uchar)i;
+    //table[i] = (uchar)(10 * (i/10));
+    table[i] = (uchar)i; //No pixel colour change
   }
 
   //Shrink image by merging adjacent pixels in square
