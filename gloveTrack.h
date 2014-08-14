@@ -17,6 +17,4 @@
 #include "isolateGlove.h"
 #include "lookupDatabase.h"
 
-#define NUMTRAININGIMAGES 1
-
 #endif

@@ -1,113 +1,153 @@
 #include "gloveTrack.h"
 
-using namespace cv;
-
-int detection(Mat);
-Rect boundingBox;
+void parseCommandLineArgs(int, char**);
+std::string concatStringInt(std::string part1,int part2);
+Mat captureFrame(VideoCapture device);
 int numImagesTaken = 0;
 
+//Globals
+bool debugMode;
 std::vector<Mat> comparisonImages;
+double iWidth, iHeight;
+const int numGloveColors=5;
+Scalar calibrationColor[numGloveColors];
+
 
 int main(int argc, char** argv){
-  if (argc > 1){
-    /*if (argv[1].("-v")==0) {
-      std::cout << argv[0] << " Version " << Glovetrack_VERSION_MAJOR
-	 << " " << Glovetrack_VERSION_MINOR << std::endl;
-    }
-    if (argv[1].("-h")==0) {
-    std::cout << "usage: DisplayImage.out <Image_Path>" << std::endl;
-    return 1;
-    }*/
-  }
+  debugMode=false;
+  std::string databasePath("db/trainingSet");
+  parseCommandLineArgs(argc,argv);
+
   Mat frame;
   
-  VideoCapture capture(0);
-  if (!capture.isOpened()) {
-    std::cout << " Unable to open video capture device";
-    return (1);
+  VideoCapture captureDevice(0);
+  if (!captureDevice.isOpened()) {
+    std::cerr << " Unable to open video capture device" << std::endl;
+    exit(1);
   }
 
-  double iWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-  double iHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+  iWidth = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
+  iHeight = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-  boundingBox = Rect( (iWidth/2.0), (iHeight/2.0), 100, 100);
+  //Size of reduced dimensionality image
+  int databaseImageWidth = 50;
+  int databaseImageHeight = 50;
 
-  
-  for (int i=0;i<NUMTRAININGIMAGES;i++) {
-    std::string start("db/trainingSet");
-    std::string end (".jpg");
-    std::stringstream ss;
-    ss << start << i << end;
-    std::string imgInputPath(ss.str());
 
-    std::cerr << imgInputPath;
-    Mat trainImg = imread(imgInputPath,1); //later make it non-hardcoded. 
-    comparisonImages.push_back(trainImg.clone());//img already correct size, so no need to boundbox
+  //Load image database
+  bool imagesLeftToLoad=true;
+  int index = 0;
+  while (imagesLeftToLoad==true) {
+    std::string imageInputPath(concatStringInt(databasePath,index));
+    imageInputPath.append(".jpg");
+    std::cerr << "Loading into database:" << imageInputPath << std::endl;
+
+    Mat trainImg = imread(imageInputPath,1);
+    if (trainImg.data==NULL) {
+      std::cerr << "Unable to read:" << imageInputPath << std::endl << " Either missing file, incorrect permissions, or unsupported/invalid format." << std::endl;
+    imagesLeftToLoad=false;
+    } else {
+      comparisonImages.push_back(trainImg.clone()); //img already correct size, so no need to boundbox
+      index++;
+    }
   }
 
   while( true ) {
     double t = (double)getTickCount();
-    bool readable = capture.read(frame);
-    if( !readable) {
-      std::cout << "Cannot read frame from video stream";
-      return 1;
+
+    frame = captureFrame(captureDevice);
+
+    Rect boundingBox = locateGlove(frame); //Currently no tracking
+    
+    rectangle(frame, boundingBox, Scalar(0,0,0)); //Draw rect tracking glove 
+    
+    Mat currentFrame = frame(boundingBox);
+
+    Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
+    Rect regionOfInterest(Point(30,100), shrunkFrame.size());
+    shrunkFrame.copyTo(frame(regionOfInterest));
+
+    if (comparisonImages.size() > 0){
+      int indexOfMatch = queryDatabasePose(currentFrame);
+      Rect roi(Point(100,240), comparisonImages.at(indexOfMatch).size());
+
+      //Isolate below into "getPoseImage()" later:
+      comparisonImages.at(indexOfMatch).copyTo(frame(roi));
     }
 
-    rectangle(frame, boundingBox, Scalar(0,0,0)); //draw rect
-    Mat currentFrame = frame(boundingBox);
-    int indexOfMatch = detection(currentFrame);
-
-    Rect roi(Point(100,240), comparisonImages.at(indexOfMatch).size());
-    comparisonImages.at(indexOfMatch).copyTo(frame(roi));
     
     int c = waitKey(10);
-    if( (char)c == 'c' ) { break; }
 
     if( (char)c == 'p' ) {
       Mat photo;
-      capture.read(photo);//ERROR CHECKING!
+      photo = captureFrame(captureDevice);
       photo = photo(boundingBox);
-      std::cout << "P pressed. Taking photo "<< std::endl;
-      std::string start("db/trainingSet");
-      std::string end (".jpg");
-      std::stringstream ss;
-      ss << start << numImagesTaken  << end;
-      std::string imgOutputPath(ss.str());
-      imwrite( imgOutputPath, photo );
+      std::string imageOutputPath(concatStringInt(databasePath,numImagesTaken));
+      imageOutputPath.append(".jpg");
+      std::cerr << "P pressed. Saving photo in " << imageOutputPath << std::endl;
+      imwrite( imageOutputPath, photo );
       comparisonImages.push_back(photo);//immediately make new comparison image this photo
       numImagesTaken++;
     }
 
-    imshow("gloveTrack",frame);
-    t = ((double)getTickCount() - t)/getTickFrequency();
-    std::cout << "Times passed in seconds: " << t << std::endl;
-  }
-  return (0);
-}
-
-int detection(Mat curr) {
-  int rows = curr.rows;
-  int cols = curr.cols;
-
-  int indexOfSmallestHamming = -1;
-  int smallestHamming = curr.rows * curr.cols + 1;
-  //std::cerr << smallestHamming << std::endl;
-
-  for (int k=0;k<comparisonImages.size();k++) {
-    int runningTotalHammingDist = 0;
-    for (int i=0;i<rows;i++){
-      for (int j=0;j<cols;j++){
-	if ( comparisonImages.at(k).at<uchar>(i,j) != curr.at<uchar>(i,j) ){ //recall uchar is 8 bit, 0->255
-	  runningTotalHammingDist++;
-	}
+    Rect calibrationRect = Rect( (iWidth/2.0), (iHeight/20.0), 25, 45);
+    if( (char)c == 'c' ) {
+      std::cerr << "Calibrate" << std::endl;
+      calibrate(frame, calibrationRect);
+    }
+    if (debugMode==true){
+      for (int i=0;i<numGloveColors;i++) {
+	rectangle(frame, calibrationRect, calibrationColor[i]); //draw rect
+	calibrationRect.y += calibrationRect.height;
       }
     }
 
-    //Determine lowest
-    if (runningTotalHammingDist < smallestHamming) {
-      smallestHamming = runningTotalHammingDist;
-      indexOfSmallestHamming = k;
+
+    if( (char)c == 'q' ) {
+      break;
+    }
+
+    imshow("gloveTrack",frame);
+    t = ((double)getTickCount() - t)/getTickFrequency();
+    if(debugMode==true){std::cout << "Times passed in seconds: " << t << std::endl;}
+  }
+
+  return (0);
+}
+//Pre-C++11 standard doesn't have string class concat, atoi not standardized
+std::string concatStringInt(std::string part1,int part2) {
+    std::stringstream ss;
+    ss << part1 << part2;
+    return (ss.str());
+}
+
+Mat captureFrame(VideoCapture device) {
+  Mat frame;
+  bool readable = device.read(frame);
+  if( !readable) {
+    std::cerr << "Cannot read frame from video stream" << std::endl;
+    exit(1);
+  }
+  return (frame);
+}
+
+
+void parseCommandLineArgs(int argc, char** argv) {
+  if (argc > 1){
+    if (strcmp(argv[1],"-v")==0) {
+      std::cout << "gloveTrack" << " Version " << Glovetrack_VERSION_MAJOR
+		<< " " << Glovetrack_VERSION_MINOR << std::endl;
+      exit(0);
+    }
+
+    if (strcmp(argv[1],"-h")==0) {
+      std::cout << "Usage: ./gloveTrack [-d|-v]" << std::endl;
+      exit(0);
+    }
+
+    if (strcmp(argv[1],"-d")==0) {
+      std::cout << "Debug mode enabled" << std::endl;
+      debugMode=true;
     }
   }
-  return indexOfSmallestHamming;
 }
