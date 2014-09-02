@@ -9,16 +9,22 @@ int numImagesTaken = 0;
 bool debugMode;
 std::vector<Mat> comparisonImages;
 double iWidth, iHeight;
-const int numGloveColors=4;
+const int numGloveColors=3;
 Scalar calibrationColor[numGloveColors];
 
 int main(int argc, char** argv){
-  calibrationColor[0] = Scalar(46,44,83,0); // Playing with removal color of clothing on arm, skin
-  calibrationColor[1] = Scalar(65,82,170,0); //Red (Permanent marker)
+  //Preset color lookup
+  //calibrationColor[0] = Scalar(46,44,83,0); // Special: Playing with removal color of clothing on arm, skin
+  /*calibrationColor[1] = Scalar(65,82,170,0); //Red (Permanent marker)
 
   //  calibrationColor[2] = Scalar(89,90,53,0); //Green (Permanent marker) (<--- is dark so maybe: 120,135,85)
   calibrationColor[2] = Scalar(120,135,85,0); //Green (Permanent marker) lighter version
   calibrationColor[3] = Scalar(116,58,56,0); //Blue (Permanent marker)
+  */
+
+  calibrationColor[0] = Scalar(0,0,255,0); //Red (Permanent marker)
+  calibrationColor[1] = Scalar(0,255,0,0); //Green (Permanent marker) lighter version
+  calibrationColor[2] = Scalar(255,0,0,0); //Blue (Permanent marker)
 
   
 
