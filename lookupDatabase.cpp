@@ -54,3 +54,53 @@ int queryDatabasePose(Mat curr) {
   }
   return indexOfSmallestHamming;
 }
+
+
+//Relatively expensive operation, but only done ONCE per frame before lookup. (The database is processed offline with millions of images processed)
+Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
+  Mat returnFrame;
+  isolatedFrame.copyTo(returnFrame);
+
+  int rows = returnFrame.rows;
+  int cols = returnFrame.cols;
+  for (int i=0;i<rows;++i){
+    for (int j=0;j<cols*3;j=j+3){//Columns are 3-channel
+      if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
+	   && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
+	   && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){
+
+	//Find smallest color difference
+	int indexOfClosestColor = -1;
+	int smallestDelta = 255 + 255 + 255 + 1;
+	for (int k=0; k< numGloveColors; k++){
+	  int colorDeltaOfCurrentPixel =  abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
+	    + abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
+	    + abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0]);
+	  if (smallestDelta >= colorDeltaOfCurrentPixel) {
+	    smallestDelta = colorDeltaOfCurrentPixel;
+	    indexOfClosestColor = k;
+	  }
+	}
+      
+    
+
+	//Set pixel to this color
+	returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
+	returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
+	returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
+
+	//Set pixel to "negative" style
+	  //returnFrame.ptr<uchar>(i)[j] = isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j];
+	  //returnFrame.ptr<uchar>(i)[j+1] = isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1];
+	  //returnFrame.ptr<uchar>(i)[j+2] = isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2];
+	  
+      
+      } else {
+	returnFrame.ptr<uchar>(i)[j] = 255;
+	returnFrame.ptr<uchar>(i)[j+1] = 255;
+	returnFrame.ptr<uchar>(i)[j+2] = 255;
+      }
+    }
+  }
+  return returnFrame;
+}

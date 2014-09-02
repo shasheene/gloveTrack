@@ -12,7 +12,6 @@ double iWidth, iHeight;
 const int numGloveColors=5;
 Scalar calibrationColor[numGloveColors];
 
-
 int main(int argc, char** argv){
   debugMode=false;
   std::string databasePath("db/trainingSet");
@@ -44,28 +43,40 @@ int main(int argc, char** argv){
 
     Mat trainImg = imread(imageInputPath,1);
     if (trainImg.data==NULL) {
-      std::cerr << "Unable to read:" << imageInputPath << std::endl << " Either missing file, incorrect permissions, or unsupported/invalid format." << std::endl;
+      std::cerr << "Unable to read:" << imageInputPath << std::endl << "Likely finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
     imagesLeftToLoad=false;
     } else {
+
       comparisonImages.push_back(trainImg.clone()); //img already correct size, so no need to boundbox
       index++;
     }
   }
 
+
+  //Untouched background for calibration
+  Mat backgroundFrame = captureFrame(captureDevice);
   while( true ) {
     double t = (double)getTickCount();
 
     frame = captureFrame(captureDevice);
 
-    Rect gloveRegion = locateGlove(frame); //Currently no tracking
-    
-    rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rect tracking glove 
+    Rect gloveRegion = locateGlove(frame); //No actual tracking yet (returns fixed region)
+    rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
     
     Mat currentFrame = frame(gloveRegion);
 
-    Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
-    Rect regionOfInterest(Point(30,100), shrunkFrame.size());
+    //Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
+    Mat shrunkFrame = currentFrame;
+
+
+    Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
+    shrunkFrame = cleanupImage(shrunkFrame, backgroundRemovalFrame);
+
+    //Draw shrunkFrame on given point on screen (later only in debug mode)
+    Rect regionOfInterest(Point(30,35), shrunkFrame.size());
     shrunkFrame.copyTo(frame(regionOfInterest));
+    
+
 
     if (comparisonImages.size() > 0){
       int indexOfMatch = queryDatabasePose(currentFrame);
@@ -75,9 +86,9 @@ int main(int argc, char** argv){
       comparisonImages.at(indexOfMatch).copyTo(frame(roi));
     }
 
-    
-    int c = waitKey(10);
 
+    //READ KEYBOARD
+    int c = waitKey(10);
     if( (char)c == 'p' ) {
       Mat photo;
       photo = captureFrame(captureDevice);
@@ -104,8 +115,10 @@ int main(int argc, char** argv){
 
 
     if( (char)c == 'q' ) {
-      break;
+      exit(0);
     }
+
+
 
     imshow("gloveTrack",frame);
     t = ((double)getTickCount() - t)/getTickFrequency();
@@ -114,6 +127,8 @@ int main(int argc, char** argv){
 
   return (0);
 }
+
+
 //Pre-C++11 standard doesn't have string class concat, atoi not standardized
 std::string concatStringInt(std::string part1,int part2) {
     std::stringstream ss;
