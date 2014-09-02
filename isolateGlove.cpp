@@ -1,12 +1,13 @@
 #include "isolateGlove.h"
 
 void calibrate(Mat cameraFrame, Rect calibrationRect) {
+  int samplePixelYPos = calibrationRect.y + (int)(calibrationRect.height/2);
+  int samplePixelXPos = calibrationRect.x + (int)(calibrationRect.width/2);
+
   for (int i=0;i<numGloveColors;i++) {
-    calibrationRect.y = calibrationRect.y*i;
-    calibrationRect.x = calibrationRect.x*i;
-    
-    Vec3b pixelColor = cameraFrame.at<Vec3b>(calibrationRect.y,calibrationRect.x);
+    Vec3b pixelColor = cameraFrame.at<Vec3b>(samplePixelYPos,samplePixelXPos); //Yes, y then x.
     calibrationColor[i] = Scalar(pixelColor[0],pixelColor[1],pixelColor[2]);
+    samplePixelYPos += calibrationRect.y; //Next sampling point is the next rectangle
  }
 
 }

@@ -9,10 +9,19 @@ int numImagesTaken = 0;
 bool debugMode;
 std::vector<Mat> comparisonImages;
 double iWidth, iHeight;
-const int numGloveColors=5;
+const int numGloveColors=4;
 Scalar calibrationColor[numGloveColors];
 
 int main(int argc, char** argv){
+  calibrationColor[0] = Scalar(46,44,83,0); // Playing with removal color of clothing on arm, skin
+  calibrationColor[1] = Scalar(65,82,170,0); //Red (Permanent marker)
+
+  //  calibrationColor[2] = Scalar(89,90,53,0); //Green (Permanent marker) (<--- is dark so maybe: 120,135,85)
+  calibrationColor[2] = Scalar(120,135,85,0); //Green (Permanent marker) lighter version
+  calibrationColor[3] = Scalar(116,58,56,0); //Blue (Permanent marker)
+
+  
+
   debugMode=false;
   std::string databasePath("db/trainingSet");
   parseCommandLineArgs(argc,argv);
@@ -101,20 +110,29 @@ int main(int argc, char** argv){
       numImagesTaken++;
     }
 
-    Rect calibrationRect = Rect( (iWidth/2.0), (iHeight/20.0), 25, 45);
+    Rect calibrationRect = Rect( (iWidth/2.0), (iHeight/20.0), 25, 45); //take color from here
     if( (char)c == 'c' ) {
       std::cerr << "Calibrate" << std::endl;
       calibrate(frame, calibrationRect);
     }
     if (debugMode==true){
       for (int i=0;i<numGloveColors;i++) {
-	rectangle(frame, calibrationRect, calibrationColor[i]); //draw rect
+	Mat smallBlockOfColor(frame, calibrationRect);
+	smallBlockOfColor = calibrationColor[i];
+	smallBlockOfColor.copyTo(frame(calibrationRect));
 	calibrationRect.y += calibrationRect.height;
       }
     }
 
 
     if( (char)c == 'q' ) {
+      if (debugMode==true) {
+	std::cerr << "Calibration colors were: " << std::endl;
+	for (int i=0;i<numGloveColors;i++) {
+	  std::cerr << calibrationColor[i] << std::endl;
+	}
+	std::cerr << std::endl;
+      }
       exit(0);
     }
 

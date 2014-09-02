@@ -1,5 +1,9 @@
 #include "lookupDatabase.h"
 
+
+void setPixelBlank(Mat returnFrame, int i, int j);//temp - used in cleanup image
+
+//change to use Vec3b = someMat.at<Vec3b>(y,x) later
 int queryDatabasePose(Mat curr) {
   int rows = curr.rows;
   int cols = curr.cols;
@@ -55,6 +59,7 @@ int queryDatabasePose(Mat curr) {
   return indexOfSmallestHamming;
 }
 
+//Change to this format:     Vec3b = someMat.at<Vec3b>(y,x);
 
 //Relatively expensive operation, but only done ONCE per frame before lookup. (The database is processed offline with millions of images processed)
 Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
@@ -68,39 +73,45 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
       if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
 	   && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
 	   && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){
-
+	
 	//Find smallest color difference
 	int indexOfClosestColor = -1;
 	int smallestDelta = 255 + 255 + 255 + 1;
 	for (int k=0; k< numGloveColors; k++){
-	  int colorDeltaOfCurrentPixel =  abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
-	    + abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
-	    + abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0]);
+	  int colorDeltaOfCurrentPixel = abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
+	    + abs(isolatedFrame.ptr<uchar>(i)[j+1] - calibrationColor[k][1])
+	    + abs(isolatedFrame.ptr<uchar>(i)[j+2] - calibrationColor[k][2]);
 	  if (smallestDelta >= colorDeltaOfCurrentPixel) {
 	    smallestDelta = colorDeltaOfCurrentPixel;
 	    indexOfClosestColor = k;
 	  }
 	}
-      
+	
     
-
-	//Set pixel to this color
-	returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
-	returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
-	returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
-
-	//Set pixel to "negative" style
-	  //returnFrame.ptr<uchar>(i)[j] = isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j];
-	  //returnFrame.ptr<uchar>(i)[j+1] = isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1];
-	  //returnFrame.ptr<uchar>(i)[j+2] = isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2];
+	if (indexOfClosestColor==0) { //remove clothes/skin color
+	  setPixelBlank(returnFrame,i,j);
+	} else {
+	  //Set pixel to this color
+	  returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
+	  returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
+	  returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
+	}
+	/*//Set pixel to "negative" style
+	returnFrame.ptr<uchar>(i)[j] = isolatedFrame.ptr<uchar>(i)[j];// - shrunkBackgroundFrame.ptr<uchar>(i)[j];
+	returnFrame.ptr<uchar>(i)[j+1] = isolatedFrame.ptr<uchar>(i)[j+1];// - shrunkBackgroundFrame.ptr<uchar>(i)[j+1];
+	returnFrame.ptr<uchar>(i)[j+2] = isolatedFrame.ptr<uchar>(i)[j+1];// - shrunkBackgroundFrame.ptr<uchar>(i)[j+2];*/
 	  
       
       } else {
-	returnFrame.ptr<uchar>(i)[j] = 255;
-	returnFrame.ptr<uchar>(i)[j+1] = 255;
-	returnFrame.ptr<uchar>(i)[j+2] = 255;
+	setPixelBlank(returnFrame,i,j);
       }
     }
   }
   return returnFrame;
+}
+
+void setPixelBlank(Mat frame,int i, int j) {
+  frame.ptr<uchar>(i)[j] = 255;
+  frame.ptr<uchar>(i)[j+1] = 255;
+  frame.ptr<uchar>(i)[j+2] = 255;
 }
