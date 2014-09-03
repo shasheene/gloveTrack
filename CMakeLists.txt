@@ -17,5 +17,5 @@ include_directories("$(PROJECT_BINARY_DIR)")
 include_directories(${OpenCV_INCLUDE_DIR})
 
 
-add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp)
+add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp)
 target_link_libraries( gloveTrack ${OpenCV_LIBS})
