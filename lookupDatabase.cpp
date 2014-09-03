@@ -75,15 +75,15 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
 	
 	//Find smallest color difference
 	int indexOfClosestColor = -1;
-	int smallestDelta = 255 + 255 + 255 + 1;
+	int smallestDelta = 444;//Biggest euclidian RGB distance is sqrt(255^2 + 255^2 + 255^2) + 1 = 442.673
 	for (int k=0; k< NUMGLOVECOLORS; k++){
-	  int colorDeltaOfCurrentPixel[3];
+	  int colorDeltaOfCurrentPixel[3];//BGR channels
 	  double euclidianDistance = 0;
 	  for (int l=0;l<3;l++){
-	    colorDeltaOfCurrentPixel[l] = abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][l]);
-	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],3);
+	    colorDeltaOfCurrentPixel[l] = isolatedFrame.ptr<uchar>(i)[j+l] - calibrationColor[k][l];
+	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
 	  }
-	  euclidianDistance = cbrt(euclidianDistance);
+	  euclidianDistance = sqrt(euclidianDistance);
 	  if (smallestDelta >= (int)euclidianDistance) {
 	    smallestDelta = (int)euclidianDistance;
 	    indexOfClosestColor = k;
