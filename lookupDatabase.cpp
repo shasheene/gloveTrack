@@ -1,8 +1,7 @@
 #include "lookupDatabase.h"
-
+#include "math.h"
 
 void setPixelBlank(Mat returnFrame, int i, int j);//temp - used in cleanup image
-
 
 int queryDatabasePose(Mat curr) {
   int rows = curr.rows;
@@ -57,60 +56,49 @@ int queryDatabasePose(Mat curr) {
   return indexOfSmallestHamming;
 }
 
-//Change to this format:     Vec3b = someMat.at<Vec3b>(y,x);
-
 //Relatively expensive operation, but only done ONCE per frame before lookup. (The database is processed offline with millions of images processed)
 //Currently does first increases brighness/contrast, then compares each pixel's hamming distance to calibrated colors
 Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
   Mat returnFrame;
   isolatedFrame.copyTo(returnFrame);
-
+  
   int rows = returnFrame.rows;
   int cols = returnFrame.cols;
   for (int i=0;i<rows;++i){
     for (int j=0;j<cols*3;j=j+3){//Columns are 3-channel
-
+      //Currently best works when background frame is black (all zeroes), and background is white - ie, detect foreground. Works quite well for testing
       if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
 	   && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
 	   && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){
-
-      //INCREASE BRIGHTNESS AND CONTRAST OF PIXEL (Hopefully helpful for lookup)
-      double alpha = 1.4;// double between 1.0 to 3.0
-      int beta = 15;// num between 0-100
-      isolatedFrame.ptr<uchar>(i)[j] = saturate_cast<uchar>(alpha*isolatedFrame.ptr<uchar>(i)[j] + beta); //newColor = alpha*colorAt(i,j) + beta
-      isolatedFrame.ptr<uchar>(i)[j+1] = saturate_cast<uchar>(alpha*isolatedFrame.ptr<uchar>(i)[j+1] + beta);
-      isolatedFrame.ptr<uchar>(i)[j+2] = saturate_cast<uchar>(alpha*isolatedFrame.ptr<uchar>(i)[j+2] + beta);
-      
-
+	
+	increaseBrightnessAndConstrastOfPixel(isolatedFrame, i, j);
 	
 	//Find smallest color difference
 	int indexOfClosestColor = -1;
 	int smallestDelta = 255 + 255 + 255 + 1;
-	for (int k=0; k< numGloveColors; k++){
-	  int colorDeltaOfCurrentPixel = abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][0])
-	    + abs(isolatedFrame.ptr<uchar>(i)[j+1] - calibrationColor[k][1])
-	    + abs(isolatedFrame.ptr<uchar>(i)[j+2] - calibrationColor[k][2]);
-	  if (smallestDelta >= colorDeltaOfCurrentPixel) {
-	    smallestDelta = colorDeltaOfCurrentPixel;
+	for (int k=0; k< NUMGLOVECOLORS; k++){
+	  int colorDeltaOfCurrentPixel[3];
+	  double euclidianDistance = 0;
+	  for (int l=0;l<3;l++){
+	    colorDeltaOfCurrentPixel[l] = abs(isolatedFrame.ptr<uchar>(i)[j] - calibrationColor[k][l]);
+	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],3);
+	  }
+	  euclidianDistance = cbrt(euclidianDistance);
+	  if (smallestDelta >= (int)euclidianDistance) {
+	    smallestDelta = (int)euclidianDistance;
 	    indexOfClosestColor = k;
 	  }
 	}
 	
-    
+	
 	//if (indexOfClosestColor==0) { //if clothes/skin color make pixel white
 	//setPixelBlank(returnFrame,i,j);
 	//} else {
-	  //Otherwise set pixel to the color determined
-	  returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
-	  returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
-	  returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
-	  //}
-	/*//Set pixel to "negative" style
-	returnFrame.ptr<uchar>(i)[j] = isolatedFrame.ptr<uchar>(i)[j];// - shrunkBackgroundFrame.ptr<uchar>(i)[j];
-	returnFrame.ptr<uchar>(i)[j+1] = isolatedFrame.ptr<uchar>(i)[j+1];// - shrunkBackgroundFrame.ptr<uchar>(i)[j+1];
-	returnFrame.ptr<uchar>(i)[j+2] = isolatedFrame.ptr<uchar>(i)[j+1];// - shrunkBackgroundFrame.ptr<uchar>(i)[j+2];*/
-	  
-      
+	//Otherwise set pixel to the color determined
+	returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
+	returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
+	returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
+	//}
       } else {
 	setPixelBlank(returnFrame,i,j);
       }
@@ -124,3 +112,14 @@ void setPixelBlank(Mat frame,int i, int j) {
   frame.ptr<uchar>(i)[j+1] = 255;
   frame.ptr<uchar>(i)[j+2] = 255;
 }
+
+void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col) {
+      //INCREASE BRIGHTNESS AND CONTRAST OF PIXEL (Hopefully helpful for lookup)
+      double alpha = 1.4;// double between 1.0 to 3.0
+      int beta = 15;// num between 0-100
+      frame.ptr<uchar>(row)[col] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col] + beta); //newColor = alpha*colorAt(row,col) + beta
+      frame.ptr<uchar>(row)[col+1] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col+1] + beta);
+      frame.ptr<uchar>(row)[col+2] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col+2] + beta);
+}
+
+

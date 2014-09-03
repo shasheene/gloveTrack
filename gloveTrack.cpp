@@ -2,39 +2,46 @@
 
 void parseCommandLineArgs(int, char**);
 std::string concatStringInt(std::string part1,int part2);
-Mat captureFrame(VideoCapture device);
+
+Mat captureFrame(VideoCapture device);//takes photo and returns it
 int numImagesTaken = 0;
 
-//Globals
+//Globals (declared extern'd in libsAndConst.h and defined elsewhere)
 bool debugMode;
 std::vector<Mat> comparisonImages;
 double iWidth, iHeight;
-const int numGloveColors=3;
-Scalar calibrationColor[numGloveColors];
+
+Mat frame;
+
+Scalar calibrationColor[NUMGLOVECOLORS];
+int calibrationIndex;//used in mouse call back
+double alpha;
+int beta;
 
 int main(int argc, char** argv){
-  //Preset color lookup
-  //calibrationColor[0] = Scalar(46,44,83,0); // Special: Playing with removal color of clothing on arm, skin
-  /*calibrationColor[1] = Scalar(65,82,170,0); //Red (Permanent marker)
+  alpha = 1.3;
+  beta = 15;
 
-  //  calibrationColor[2] = Scalar(89,90,53,0); //Green (Permanent marker) (<--- is dark so maybe: 120,135,85)
-  calibrationColor[2] = Scalar(120,135,85,0); //Green (Permanent marker) lighter version
-  calibrationColor[3] = Scalar(116,58,56,0); //Blue (Permanent marker)
-  */
-
-  calibrationColor[0] = Scalar(0,0,255,0); //Red (Permanent marker)
-  calibrationColor[1] = Scalar(0,255,0,0); //Green (Permanent marker) lighter version
-  calibrationColor[2] = Scalar(255,0,0,0); //Blue (Permanent marker)
-
-  
+  calibrationColor[0] = Scalar(50, 28, 33, 0);
+  calibrationColor[1] = Scalar(29, 15, 94, 0);
+  calibrationColor[2] = Scalar(20, 20, 38, 0);
+  calibrationColor[3] = Scalar(41, 60, 24, 0);
+  calibrationColor[4] = Scalar(51, 40, 106, 0);
+  calibrationColor[5] = Scalar(51, 63, 120, 0);
+  calibrationColor[6] = Scalar(45, 79, 86, 0);
+  calibrationColor[7] = Scalar(76, 40, 118, 0);
+  calibrationColor[8] = Scalar(71, 67, 109, 0);
 
   debugMode=false;
   std::string databasePath("db/trainingSet");
   parseCommandLineArgs(argc,argv);
 
-  Mat frame;
+  namedWindow("gloveTrack", 1);
+  setMouseCallback("gloveTrack", mouseCallback, NULL);
+
+
   
-  VideoCapture captureDevice(0);
+  VideoCapture captureDevice(1);
   if (!captureDevice.isOpened()) {
     std::cerr << " Unable to open video capture device" << std::endl;
     exit(1);
@@ -111,7 +118,7 @@ int main(int argc, char** argv){
       std::string imageOutputPath(concatStringInt(databasePath,numImagesTaken));
       imageOutputPath.append(".jpg");
       std::cerr << "P pressed. Saving photo in " << imageOutputPath << std::endl;
-      imwrite( imageOutputPath, photo );
+      imwrite( imageOutputPath, shrunkFrame );
       comparisonImages.push_back(photo);//immediately make new comparison image this photo
       numImagesTaken++;
     }
@@ -122,7 +129,7 @@ int main(int argc, char** argv){
       calibrate(frame, calibrationRect);
     }
     if (debugMode==true){
-      for (int i=0;i<numGloveColors;i++) {
+      for (int i=0;i<NUMGLOVECOLORS;i++) {
 	Mat smallBlockOfColor(frame, calibrationRect);
 	smallBlockOfColor = calibrationColor[i];
 	smallBlockOfColor.copyTo(frame(calibrationRect));
@@ -134,7 +141,7 @@ int main(int argc, char** argv){
     if( (char)c == 'q' ) {
       if (debugMode==true) {
 	std::cerr << "Calibration colors were: " << std::endl;
-	for (int i=0;i<numGloveColors;i++) {
+	for (int i=0;i<NUMGLOVECOLORS;i++) {
 	  std::cerr << calibrationColor[i] << std::endl;
 	}
 	std::cerr << std::endl;

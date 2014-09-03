@@ -14,7 +14,17 @@ extern double iHeight;
 extern bool debugMode;
 extern std::vector<Mat> comparisonImages;
 
+extern Mat frame;
+
 extern Scalar calibrationColor[];
-extern const int numGloveColors;
+#define NUMGLOVECOLORS 9
+extern int calibrationIndex;
+
+extern double alpha;
+extern int beta;
+
+extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
+
+extern Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame);//same size image
 
 #endif

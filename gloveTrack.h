@@ -16,5 +16,6 @@
 
 #include "isolateGlove.h"
 #include "lookupDatabase.h"
+#include "mouse.h"
 
 #endif
