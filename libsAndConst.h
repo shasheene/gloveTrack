@@ -20,8 +20,9 @@ extern Scalar calibrationColor[];
 #define NUMGLOVECOLORS 9
 extern int calibrationIndex;
 
-extern double alpha;
-extern int beta;
+//brightness changes
+#define ALPHA 1 //1.3
+#define BETA 0 //15
 
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 

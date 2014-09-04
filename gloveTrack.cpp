@@ -6,7 +6,7 @@ std::string concatStringInt(std::string part1,int part2);
 Mat captureFrame(VideoCapture device);//takes photo and returns it
 int numImagesTaken = 0;
 
-//Globals (declared extern'd in libsAndConst.h and defined elsewhere)
+//Globals (declared extern'd in libsAndConst.h and defined mostly in main)
 bool debugMode;
 std::vector<Mat> comparisonImages;
 double iWidth, iHeight;
@@ -15,13 +15,8 @@ Mat frame;
 
 Scalar calibrationColor[NUMGLOVECOLORS];
 int calibrationIndex;//used in mouse call back
-double alpha;
-int beta;
 
 int main(int argc, char** argv){
-  alpha = 1.3;
-  beta = 15;
-
   calibrationColor[0] = Scalar(50, 28, 33, 0);
   calibrationColor[1] = Scalar(29, 15, 94, 0);
   calibrationColor[2] = Scalar(20, 20, 38, 0);
@@ -39,8 +34,6 @@ int main(int argc, char** argv){
   namedWindow("gloveTrack", 1);
   setMouseCallback("gloveTrack", mouseCallback, NULL);
 
-
-  
   VideoCapture captureDevice(1);
   if (!captureDevice.isOpened()) {
     std::cerr << " Unable to open video capture device" << std::endl;
@@ -65,45 +58,41 @@ int main(int argc, char** argv){
 
     Mat trainImg = imread(imageInputPath,1);
     if (trainImg.data==NULL) {
-      std::cerr << "Unable to read:" << imageInputPath << std::endl << "Likely finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
+      std::cerr << "Unable to read:" << imageInputPath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
     imagesLeftToLoad=false;
     } else {
-
-      comparisonImages.push_back(trainImg.clone()); //img already correct size, so no need to boundbox
+      comparisonImages.push_back(trainImg.clone()); //img will already be correct size, so no need to get portion via boundbox
       index++;
     }
   }
 
 
-  //Untouched background for calibration
+  //Untouched background for calibration. Currently REQUIRING white background and doing no computation with it
   Mat backgroundFrame = captureFrame(captureDevice);
-  while( true ) {
-    double t = (double)getTickCount();
 
+  while( true ) {
+    double t = (double)getTickCount(); //fps calculation
     frame = captureFrame(captureDevice);
 
     Rect gloveRegion = locateGlove(frame); //No actual tracking yet (returns fixed region)
     rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
     
     Mat currentFrame = frame(gloveRegion);
-
-    //Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
-    Mat shrunkFrame = currentFrame;
-
-
     Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
-    shrunkFrame = cleanupImage(shrunkFrame, backgroundRemovalFrame);
+    currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
 
-    //Draw shrunkFrame on given point on screen (later only in debug mode)
-    Rect regionOfInterest(Point(30,35), shrunkFrame.size());
-    shrunkFrame.copyTo(frame(regionOfInterest));
-    
+    //draw on screen (later debug only)
+    Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
+    currentFrame.copyTo(frame(currentFrameScreenLocation));
 
+    //Second run over image for faster lookup later. (May merge with cleanup)
+    Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
+    Rect shrunkFrameScreenLocation(Point(0,0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
+    shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
 
     if (comparisonImages.size() > 0){
       int indexOfMatch = queryDatabasePose(currentFrame);
       Rect roi(Point(100,240), comparisonImages.at(indexOfMatch).size());
-
       //Isolate below into "getPoseImage()" later:
       comparisonImages.at(indexOfMatch).copyTo(frame(roi));
     }
@@ -112,14 +101,11 @@ int main(int argc, char** argv){
     //READ KEYBOARD
     int c = waitKey(10);
     if( (char)c == 'p' ) {
-      Mat photo;
-      photo = captureFrame(captureDevice);
-      photo = photo(gloveRegion);
       std::string imageOutputPath(concatStringInt(databasePath,numImagesTaken));
       imageOutputPath.append(".jpg");
       std::cerr << "P pressed. Saving photo in " << imageOutputPath << std::endl;
       imwrite( imageOutputPath, shrunkFrame );
-      comparisonImages.push_back(photo);//immediately make new comparison image this photo
+      comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
       numImagesTaken++;
     }
 
@@ -129,6 +115,13 @@ int main(int argc, char** argv){
       calibrate(frame, calibrationRect);
     }
     if (debugMode==true){
+      //draw little square to show which color is being calibrated
+      Rect selectorSymbolRect = Rect( (iWidth/2.0) - calibrationRect.width/2, (iHeight/20.0)+ calibrationIndex*calibrationRect.height +calibrationRect.height/2, 10, 10); //nicely located to the left of the calibration colors
+      Mat selectorSymbol(frame,selectorSymbolRect);
+      selectorSymbol = Scalar(0,0,0,0);//black square;
+      selectorSymbol.copyTo(frame(selectorSymbolRect));
+      
+	//draw actual calibration colors on screen
       for (int i=0;i<NUMGLOVECOLORS;i++) {
 	Mat smallBlockOfColor(frame, calibrationRect);
 	smallBlockOfColor = calibrationColor[i];
@@ -148,8 +141,6 @@ int main(int argc, char** argv){
       }
       exit(0);
     }
-
-
 
     imshow("gloveTrack",frame);
     t = ((double)getTickCount() - t)/getTickFrequency();

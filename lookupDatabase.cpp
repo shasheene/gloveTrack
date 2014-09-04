@@ -15,13 +15,13 @@ int queryDatabasePose(Mat curr) {
 
 
   int darkThreshold = 180;
-  /* My distance function is not purely Hamming, as I give disimilar colours extra higher distance  */
+  //Hamming distances of Euclidian distance function (slow but accurate):
   for (int q=0;q<comparisonImages.size();q++) {
     int runningTotalHammingDist = 0;
     for (int i=0;i<rows; ++i){ 
       uchar *db_pixel = comparisonImages.at(q).ptr<uchar>(i);
       uchar *current_pixel = curr.ptr<uchar>(i);
-      for (int j=0;j<cols;++j){//not quite correct, fix soon
+      for (int j=0;j<cols;++j){
 	int pixelDiff = abs(current_pixel[j]-db_pixel[j]) 
 	    + abs(current_pixel[j+1]-db_pixel[j+1]) 
 	  + abs(current_pixel[j+2]-db_pixel[j+2]);
@@ -66,10 +66,14 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
   int cols = returnFrame.cols;
   for (int i=0;i<rows;++i){
     for (int j=0;j<cols*3;j=j+3){//Columns are 3-channel
-      //Currently best works when background frame is black (all zeroes), and background is white - ie, detect foreground. Works quite well for testing
-      if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
-	   && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
-	   && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){
+      //Currently best works when background frame is black (all zeroes), and background is near white - ie, detect foreground. Works quite well for testing. In future, add better background detection
+      /*if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
+         && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
+         && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){*/
+
+      if ( (isolatedFrame.ptr<uchar>(i)[j] < 100)
+	   && (isolatedFrame.ptr<uchar>(i)[j+1] < 100)
+	   && (isolatedFrame.ptr<uchar>(i)[j+2] < 100) ){
 	
 	increaseBrightnessAndConstrastOfPixel(isolatedFrame, i, j);
 	
@@ -114,12 +118,11 @@ void setPixelBlank(Mat frame,int i, int j) {
 }
 
 void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col) {
-      //INCREASE BRIGHTNESS AND CONTRAST OF PIXEL (Hopefully helpful for lookup)
-      double alpha = 1.4;// double between 1.0 to 3.0
-      int beta = 15;// num between 0-100
-      frame.ptr<uchar>(row)[col] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col] + beta); //newColor = alpha*colorAt(row,col) + beta
-      frame.ptr<uchar>(row)[col+1] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col+1] + beta);
-      frame.ptr<uchar>(row)[col+2] = saturate_cast<uchar>(alpha*frame.ptr<uchar>(row)[col+2] + beta);
+      //INCREASE BRIGHTNESS AND CONTRAST OF PIXEL (Hopefully helpful for lookup). ALPHA/BETA are #define in libAndConst file
+
+      frame.ptr<uchar>(row)[col] = saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(row)[col] + BETA); //newColor = ALPHA*colorAt(row,col) + BETA
+      frame.ptr<uchar>(row)[col+1] = saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(row)[col+1] + BETA);
+      frame.ptr<uchar>(row)[col+2] = saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(row)[col+2] + BETA);
 }
 
 
