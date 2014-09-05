@@ -28,7 +28,8 @@ int main(int argc, char** argv){
   calibrationColor[8] = Scalar(71, 67, 109, 0);
 
   debugMode=false;
-  std::string databasePath("db/trainingSet");
+  std::string shrunkImagePath("db/trainingSet");
+  std::string bigImagePath("db/big/bigSet");
   parseCommandLineArgs(argc,argv);
 
   namedWindow("gloveTrack", 1);
@@ -52,7 +53,7 @@ int main(int argc, char** argv){
   bool imagesLeftToLoad=true;
   int index = 0;
   while (imagesLeftToLoad==true) {
-    std::string imageInputPath(concatStringInt(databasePath,index));
+    std::string imageInputPath(concatStringInt(shrunkImagePath,index));
     imageInputPath.append(".jpg");
     std::cerr << "Loading into database:" << imageInputPath << std::endl;
 
@@ -65,6 +66,7 @@ int main(int argc, char** argv){
       index++;
     }
   }
+  int initialImageDatabaseSize=index;
 
 
   //Untouched background for calibration. Currently REQUIRING white background and doing no computation with it
@@ -101,10 +103,7 @@ int main(int argc, char** argv){
     //READ KEYBOARD
     int c = waitKey(10);
     if( (char)c == 'p' ) {
-      std::string imageOutputPath(concatStringInt(databasePath,numImagesTaken));
-      imageOutputPath.append(".jpg");
-      std::cerr << "P pressed. Saving photo in " << imageOutputPath << std::endl;
-      imwrite( imageOutputPath, shrunkFrame );
+      std::cerr << "P pressed. Placing photo number " <<  numImagesTaken << " at " << numImagesTaken+initialImageDatabaseSize << std::endl;
       comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
       numImagesTaken++;
     }
@@ -133,6 +132,20 @@ int main(int argc, char** argv){
 
     if( (char)c == 'q' ) {
       if (debugMode==true) {
+	for (int i=initialImageDatabaseSize;i<numImagesTaken+initialImageDatabaseSize;i++){
+	  std::string shrunkImageFilepath(concatStringInt(shrunkImagePath,i));
+	  shrunkImageFilepath.append(".jpg");
+	  std::cerr << "Saving shrunk photos in " << shrunkImageFilepath << std::endl;
+	  imwrite( shrunkImageFilepath, comparisonImages.at(i));
+
+	  //Write out full size images
+	  //std::string bigImagePath(concatStringInt(bigImagePath,i));
+	  //bigImagePath.append(".jpg");
+	  //std::cerr << "Saving calibration photos in " << bigImagePath << std::endl;
+	  //imwrite( bigImagePath, comparisonImages.at(i));
+	}
+
+
 	std::cerr << "Calibration colors were: " << std::endl;
 	for (int i=0;i<NUMGLOVECOLORS;i++) {
 	  std::cerr << calibrationColor[i] << std::endl;
