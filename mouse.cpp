@@ -10,26 +10,26 @@ void mouseCallback(int event, int x, int y, int flags, void* userdata)
        //std::cerr << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
        if (debugMode==true) {
 	 
-	 calibrationColor[calibrationIndex] = 
+	 classificationColor[classificationArrayIndex] = 
 	   Scalar(
 		  (int)(saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(y)[x*3+0]+BETA)), //ALPHA/BETA #define in libAndConst file
 		  (int)(saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(y)[x*3+1]+BETA)), 
 		  (int)(saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(y)[x*3+2]+BETA)));
- 	 std::cerr << "Calibrated " << calibrationIndex << " with " << calibrationColor[calibrationIndex] << std::endl;
+ 	 std::cerr << "Calibrated " << classificationArrayIndex << " with " << classificationColor[classificationArrayIndex] << std::endl;
        }
      }
      else if  ( event == EVENT_RBUTTONDOWN )
      {
-       calibrationIndex = (calibrationIndex+1)%NUMGLOVECOLORS;
-       std::cerr << "calibrationIndex now " << calibrationIndex << std::endl;
+       classificationArrayIndex = (classificationArrayIndex+1)%NUMGLOVECOLORS;
+       std::cerr << "classificationArrayIndex now " << classificationArrayIndex << std::endl;
      }
      else if  ( event == EVENT_MBUTTONDOWN )
      {
-       calibrationIndex--;
-       if (calibrationIndex <0) {
-	 calibrationIndex = NUMGLOVECOLORS -1;
+       classificationArrayIndex--;
+       if (classificationArrayIndex <0) {
+	 classificationArrayIndex = NUMGLOVECOLORS -1;
        }
-       std::cerr << "calibrationIndex now " << calibrationIndex << std::endl;
+       std::cerr << "classificationArrayIndex now " << classificationArrayIndex << std::endl;
      }
      else if ( event == EVENT_MOUSEMOVE )
      {

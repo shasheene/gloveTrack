@@ -1,4 +1,3 @@
-
 #ifndef INCLUDED_LIBS_AND_CONST
 #define  INCLUDED_LIBS_AND_CONST
 
@@ -14,13 +13,13 @@ extern double iHeight;
 extern bool debugMode;
 extern std::vector<Mat> comparisonImages;
 
-extern Mat frame;
+extern Mat frame; // Entire camera frame
 
-extern Scalar calibrationColor[];
+extern Scalar classificationColor[];
 #define NUMGLOVECOLORS 9
-extern int calibrationIndex;
+extern int classificationArrayIndex;
 
-//brightness changes
+//brightness and constrast changes
 #define ALPHA 1 //1.3
 #define BETA 0 //15
 

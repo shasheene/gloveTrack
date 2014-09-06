@@ -1,17 +1,5 @@
 #include "isolateGlove.h"
 
-void calibrate(Mat cameraFrame, Rect calibrationRect) {
-  int samplePixelYPos = calibrationRect.y + (int)(calibrationRect.height/2);
-  int samplePixelXPos = calibrationRect.x + (int)(calibrationRect.width/2);
-
-  for (int i=0;i<NUMGLOVECOLORS;i++) {
-    Vec3b pixelColor = cameraFrame.at<Vec3b>(samplePixelYPos,samplePixelXPos); //Yes, y then x.
-    calibrationColor[i] = Scalar(pixelColor[0],pixelColor[1],pixelColor[2]);
-    samplePixelYPos += calibrationRect.y; //Next sampling point is the next rectangle
- }
-
-}
-
 Rect locateGlove(Mat cameraFrame) {
   Rect gloveLocation;
   //Add smarts

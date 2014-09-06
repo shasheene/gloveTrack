@@ -1,7 +1,35 @@
 #include "lookupDatabase.h"
 #include "math.h"
 
-void setPixelBlank(Mat returnFrame, int i, int j);//temp - used in cleanup image
+int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix){
+    bool imagesLeftToLoad=true;
+    int index = 0;
+    while (imagesLeftToLoad==true) {
+      std::string imageInputFilepath(concatStringInt(databaseFilepathPrefix,index));
+      imageInputFilepath.append(".jpg");
+      std::cerr << "Loading into database:" << imageInputFilepath << std::endl;
+      
+      Mat loadedImage = imread(imageInputFilepath,1);
+      if (loadedImage.data==NULL) {
+	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
+	imagesLeftToLoad=false;
+      } else {
+	imageVector.push_back(loadedImage.clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
+	index++;
+      }
+    }
+    return index;
+}
+
+void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::string databaseFilepathPrefix){ 
+  for (int i=originalDatabaseSize;i<imageVector.size();i++){
+    std::string imageOutputFilepath(concatStringInt(databaseFilepathPrefix,i));
+    imageOutputFilepath.append(".jpg");
+    std::cerr << "Saving photos in " << imageOutputFilepath << std::endl;
+    imwrite( imageOutputFilepath, comparisonImages.at(i));
+  }
+}
+
 
 int queryDatabasePose(Mat curr) {
   int rows = curr.rows;
@@ -84,7 +112,7 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
 	  int colorDeltaOfCurrentPixel[3];//BGR channels
 	  double euclidianDistance = 0;
 	  for (int l=0;l<3;l++){
-	    colorDeltaOfCurrentPixel[l] = isolatedFrame.ptr<uchar>(i)[j+l] - calibrationColor[k][l];
+	    colorDeltaOfCurrentPixel[l] = isolatedFrame.ptr<uchar>(i)[j+l] - classificationColor[k][l];
 	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
 	  }
 	  euclidianDistance = sqrt(euclidianDistance);
@@ -99,9 +127,9 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
 	//setPixelBlank(returnFrame,i,j);
 	//} else {
 	//Otherwise set pixel to the color determined
-	returnFrame.ptr<uchar>(i)[j] = calibrationColor[indexOfClosestColor][0];
-	returnFrame.ptr<uchar>(i)[j+1] = calibrationColor[indexOfClosestColor][1];
-	returnFrame.ptr<uchar>(i)[j+2] = calibrationColor[indexOfClosestColor][2];
+	returnFrame.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
+	returnFrame.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
+	returnFrame.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
 	//}
       } else {
 	setPixelBlank(returnFrame,i,j);
@@ -110,6 +138,8 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
   }
   return returnFrame;
 }
+
+			    //PRIVATE HELPER FUNCTIONS:			    
 
 void setPixelBlank(Mat frame,int i, int j) {
   frame.ptr<uchar>(i)[j] = 255;
@@ -124,5 +154,13 @@ void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col) {
       frame.ptr<uchar>(row)[col+1] = saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(row)[col+1] + BETA);
       frame.ptr<uchar>(row)[col+2] = saturate_cast<uchar>(ALPHA*frame.ptr<uchar>(row)[col+2] + BETA);
 }
+
+std::string concatStringInt(std::string part1,int part2) {
+    std::stringstream ss;
+    ss << part1 << part2;
+    return (ss.str());
+}
+
+
 
 

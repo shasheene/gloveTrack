@@ -3,9 +3,6 @@
 
 #include "libsAndConst.h"
 
-//Changes color values which locateGlove uses
-void calibrate(Mat cameraFrame, Rect calibrationRect);
-
 //Returns position of glove as cv::Rect
 Rect locateGlove(Mat cameraFrame);
 
