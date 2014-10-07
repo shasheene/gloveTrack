@@ -1,12 +1,14 @@
 #include "lookupDatabase.h"
 #include "math.h"
+#include <iomanip>
+
 
 int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix){
     bool imagesLeftToLoad=true;
-    int index = 0;
+    int index = 1; //start from 1 for blender
     while (imagesLeftToLoad==true) {
       std::string imageInputFilepath(concatStringInt(databaseFilepathPrefix,index));
-      imageInputFilepath.append(".jpg");
+      imageInputFilepath.append(".png");//png for blender images. JPG for opencv saved img
       std::cerr << "Loading into database:" << imageInputFilepath << std::endl;
       
       Mat loadedImage = imread(imageInputFilepath,1);
@@ -29,6 +31,7 @@ void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::s
     imwrite( imageOutputFilepath, comparisonImages.at(i));
   }
 }
+
 
 //TEMPORARY QUCIK AND DIRTY INSERTION SORT. O(n^2) is ok as function used in offline (ie non-realtime) verification
 void addToNearestNeighbor(int euclidianDist, int indexOfCandidate ,
@@ -187,7 +190,7 @@ void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col) {
 
 std::string concatStringInt(std::string part1,int part2) {
     std::stringstream ss;
-    ss << part1 << part2;
+    ss << part1 << std::setw(4) << std::setfill('0') << part2; //append leading zeroes so format of read in is same as Blender output png
     return (ss.str());
 }
 

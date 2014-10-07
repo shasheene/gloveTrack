@@ -1,5 +1,65 @@
 #include "isolateGlove.h"
 
+//Need to merge cleanupImage(), locateGlove etc into this function later
+Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
+  Mat returnFrame;
+  unprocessedCameraFrame.copyTo(returnFrame);
+
+  //LOCATE GLOVE:
+  int numRows = unprocessedCameraFrame.rows;
+  int numCols = unprocessedCameraFrame.cols;
+  for (int i=0;i<numRows;++i){
+    for (int j=0;j<numCols*3;j=j+3){//Columns are 3-channel
+      if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] < 100)
+	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] < 100)
+	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] < 100) ){
+	
+	increaseBrightnessAndConstrastOfPixel(unprocessedCameraFrame, i, j);
+	
+	//Find smallest color difference
+	int indexOfClosestColor = -1;
+	int smallestDelta = 444;//Biggest euclidian RGB distance is sqrt(255^2 + 255^2 + 255^2) + 1 = 442.673
+	for (int k=0; k< NUMGLOVECOLORS; k++){
+	  int colorDeltaOfCurrentPixel[3];//BGR channels
+	  double euclidianDistance = 0;
+	  for (int l=0;l<3;l++){
+	    colorDeltaOfCurrentPixel[l] = unprocessedCameraFrame.ptr<uchar>(i)[j+l] - classificationColor[k][l];
+	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
+	  }
+	  euclidianDistance = sqrt(euclidianDistance);
+	  if (smallestDelta >= (int)euclidianDistance) {
+	    smallestDelta = (int)euclidianDistance;
+	    indexOfClosestColor = k;
+	  }
+	}
+	
+	
+	//if (indexOfClosestColor==0) { //if clothes/skin color make pixel white
+	//setPixelBlank(unprocessedCameraFrame,i,j);
+	//} else {
+	//Otherwise set pixel to the color determined
+	unprocessedCameraFrame.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
+	unprocessedCameraFrame.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
+	unprocessedCameraFrame.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
+	//}
+      } else {
+	//setPixelBlank(unprocessedCameraFrame,i,j);
+      }
+    }
+  }
+  return returnFrame;
+
+
+  //CROP
+
+
+  //CLASSIFY COLORS
+
+
+  //RETURN PERFECT QUERTY IMAGE
+
+}
+
 Rect locateGlove(Mat cameraFrame) {
   Rect gloveLocation;
   //Add smarts

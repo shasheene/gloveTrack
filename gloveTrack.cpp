@@ -36,8 +36,8 @@ int main(int argc, char** argv){
   classificationColor[8] = Scalar(71, 67, 109, 0);
 
   debugMode=false;
-  std::string trainingImagePath("db/trainingSet");
-  std::string testingImagePath("db/testingSet");
+  std::string trainingImagePath("db/blenderImg/");
+  std::string testingImagePath("db/test");
   parseCommandLineArgs(argc,argv);
 
   namedWindow("gloveTrack", 1);
@@ -50,20 +50,24 @@ int main(int argc, char** argv){
   //Load image database
   int initialImageDatabaseSize = loadImageDatabase(comparisonImages, trainingImagePath);
   int testingImageDatabaseSize = loadImageDatabase(testingImages, testingImagePath);
-  
-  int test;
+
+  waitKey(0);
   for (int i=0;i<testingImageDatabaseSize;i++){
-    std::cout << "Testing image number " << i << std::endl;
+    std::cerr << "Testing image number " << i << std::endl;
+
+    //Normalize query:
+    Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
 
     //Output X nearest neighbors by weighted hamming distance, 
-    vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
+    //vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
 
-    for (int i=0;i<nearestNeighboors.size();i++) {
-      std::cout << nearestNeighboors.at(i) << " ";
-    }
+    //for (int i=0;i<nearestNeighboors.size();i++) {
+    //std::cout << nearestNeighboors.at(i) << " ";
+    //}
+
+    imshow("gloveTrack",normalizedQueryImage);  
     std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
-
-    std::cin >> test; //pause for Enter
+    waitKey(0);
   }
   
 
