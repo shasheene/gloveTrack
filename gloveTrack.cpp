@@ -9,6 +9,7 @@ int numImagesTaken = 0;
 //Globals (declared extern'd in libsAndConst.h and defined mostly in main)
 bool debugMode;
 std::vector<Mat> comparisonImages;
+std::vector<Mat> testingImages;
 double iWidth, iHeight;
 
 Mat frame;
@@ -35,118 +36,38 @@ int main(int argc, char** argv){
   classificationColor[8] = Scalar(71, 67, 109, 0);
 
   debugMode=false;
-  std::string shrunkImagePath("db/trainingSet");
-  std::string bigImagePath("db/big/bigSet");
+  std::string trainingImagePath("db/trainingSet");
+  std::string testingImagePath("db/testingSet");
   parseCommandLineArgs(argc,argv);
 
   namedWindow("gloveTrack", 1);
   setMouseCallback("gloveTrack", mouseCallback, NULL);
 
-  VideoCapture captureDevice;
-
-  //Open first successful device
-  bool successfullyOpenedDevice = false;
-  while (successfullyOpenedDevice==false && videoCaptureDeviceNumber<5) {
-    if (!openCaptureDevice(captureDevice, videoCaptureDeviceNumber)) {
-      std::cerr << " Unable to open video capture device #" << videoCaptureDeviceNumber << std::endl;
-      captureDevice.release();
-      videoCaptureDeviceNumber++;
-    } else {
-      successfullyOpenedDevice = true;
-      std::cerr << " Opened device #" << videoCaptureDeviceNumber << " press V to cycle through all devices" << std::endl;
-    }
-  }
-  
-  //Trivial to add arg parsing for selection later
-  if (!captureDevice.isOpened()) {
-    std::cerr << " Unable to open video capture device 0 too. Quitting" << std::endl;
-    exit(1);
-  }
-  
-  
-  
-  iWidth = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
-  iHeight = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
-  
   //Size of reduced dimensionality image
   int databaseImageWidth = 50;
   int databaseImageHeight = 50;
 
   //Load image database
-  int initialImageDatabaseSize = loadImageDatabase(comparisonImages, shrunkImagePath);
+  int initialImageDatabaseSize = loadImageDatabase(comparisonImages, trainingImagePath);
+  int testingImageDatabaseSize = loadImageDatabase(testingImages, testingImagePath);
   
-  //Later load classificationColors from image file
+  int test;
+  for (int i=0;i<testingImageDatabaseSize;i++){
+    std::cout << "Testing image number " << i << std::endl;
 
-  //Untouched background for calibration. Currently REQUIRING white background and doing no computation with it
-  Mat backgroundFrame = captureFrame(captureDevice);
+    //Output X nearest neighbors by weighted hamming distance, 
+    vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
 
-  while( true ) {
-    double t = (double)getTickCount(); //fps calculation
-    frame = captureFrame(captureDevice);
-    
-    Rect gloveRegion = locateGlove(frame); //No actual tracking yet (returns fixed region)
-    rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
-    
-    Mat currentFrame = frame(gloveRegion);
-    Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
-    currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
-    
-    //draw on screen (later debug only)
-    Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
-    currentFrame.copyTo(frame(currentFrameScreenLocation));
-    
-    //Second run over image for faster lookup later. (May merge with cleanup)
-    Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
-    Rect shrunkFrameScreenLocation(Point(0,0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
-    shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
-    
-    if (comparisonImages.size() > 0){
-      int indexOfMatch = queryDatabasePose(currentFrame);
-      Rect roi(Point(100,240), comparisonImages.at(indexOfMatch).size());
-      //Isolate below into "getPoseImage()" later:
-      comparisonImages.at(indexOfMatch).copyTo(frame(roi));
+    for (int i=0;i<nearestNeighboors.size();i++) {
+      std::cout << nearestNeighboors.at(i) << " ";
     }
-    
-    
-    //READ KEYBOARD
-    int c = waitKey(10);
-    if( (char)c == 'p' ) {
-      std::cerr << "P pressed. Pushing back photo number " <<  numImagesTaken << " into " << numImagesTaken+initialImageDatabaseSize << std::endl;
-      comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
-      numImagesTaken++;
-    }
+    std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
 
-    if (debugMode==true){
-      drawCurrentClassificationColors(frame); 
-    }
-
-    if( (char)c == 'q' ) {
-      if (debugMode==true) {
-	//Backup unsaved comparison image files:
-	saveDatabase(comparisonImages, initialImageDatabaseSize,  shrunkImagePath);
-
-	//Later, save classification colors to image file
-      }
-      exit(0);
-    }
-    
-    imshow("gloveTrack",frame);
-    t = ((double)getTickCount() - t)/getTickFrequency();
-    if(debugMode==true){std::cout << "Times passed in seconds: " << t << std::endl;}
+    std::cin >> test; //pause for Enter
   }
+  
 
   return (0);
-}
-
-
-Mat captureFrame(VideoCapture device) {
-  Mat frame;
-  bool readable = device.read(frame);
-  if( !readable) {
-    std::cerr << "Cannot read frame from video stream" << std::endl;
-    exit(1);
-  }
-  return (frame);
 }
 
 //for debug:

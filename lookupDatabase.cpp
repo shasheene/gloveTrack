@@ -30,59 +30,93 @@ void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::s
   }
 }
 
+//TEMPORARY QUCIK AND DIRTY INSERTION SORT. O(n^2) is ok as function used in offline (ie non-realtime) verification
+void addToNearestNeighbor(int euclidianDist, int indexOfCandidate ,
+			     std::vector<int> &indexOfNearestNeighbor,std::vector<int> &distToNearestNeighbor) {
+  std::vector<int>::iterator it = distToNearestNeighbor.begin();
+  bool inserted = false;
+  for (int i=0;i<distToNearestNeighbor.size();i++){
+    if (euclidianDist <= distToNearestNeighbor.at(i) && inserted ==false){
+      it = indexOfNearestNeighbor.begin();
+      indexOfNearestNeighbor.insert(it+i, indexOfCandidate);
 
-int queryDatabasePose(Mat curr) {
+      it = distToNearestNeighbor.begin();
+      distToNearestNeighbor.insert(it+i, euclidianDist);
+      inserted = true;
+    }
+  }
+  if (distToNearestNeighbor.size() ==0 || inserted==false ){
+    distToNearestNeighbor.push_back(euclidianDist);
+    indexOfNearestNeighbor.push_back(indexOfCandidate);
+  }
+
+}
+
+std::vector<int> queryDatabasePose(Mat curr) {
   int rows = curr.rows;
   int cols = curr.cols;
   int channels = curr.channels();//img array of pixels with multiple colour channels
   //Using the Vec3b slowed current from 15ms to 30ms, so usig pointers
 
-  int indexOfSmallestHamming = -1;
-  int smallestHamming = curr.rows * curr.cols + 1;
-  //std::cerr << smallestHamming << std::endl;
-
-
+  std::vector<int> distToNearestNeighbor;
+  std::vector<int> indexOfNearestNeighbor;
   int darkThreshold = 180;
-  //Hamming distances of Euclidian distance function (slow but accurate):
   for (int q=0;q<comparisonImages.size();q++) {
     int runningTotalHammingDist = 0;
     for (int i=0;i<rows; ++i){ 
-      uchar *db_pixel = comparisonImages.at(q).ptr<uchar>(i);
       uchar *current_pixel = curr.ptr<uchar>(i);
-      for (int j=0;j<cols;++j){
-	int pixelDiff = abs(current_pixel[j]-db_pixel[j]) 
-	    + abs(current_pixel[j+1]-db_pixel[j+1]) 
-	  + abs(current_pixel[j+2]-db_pixel[j+2]);
+      for (int j=0;j<cols;j=j+3){
+	int colorDelta =0;
+	//calculateDistanceMetric. Over every pixel of comparison image, weighted by distnace
+	for (int k=0;k<curr.rows; ++k){
+	  uchar *db_pixel = comparisonImages.at(q).ptr<uchar>(k);    
+	  for (int l=0;l<curr.cols; l=l+3){
+	    float euclidianPixelDistance =  sqrt( pow((i-k),2) + pow((j/3-l/3),2) );
+	    if (euclidianPixelDistance <= 7) { //we only consider pixels within 7 pixels radius. For testing 2 pixels is good
+	      //std::cerr << " Comparing to pixel (" << k << "," << l/3 << ") which has euclidian 2D distance " << euclidianPixelDistance << " " << "\n";      
+	      colorDelta = sqrt( pow((current_pixel[j]-db_pixel[l]),2)
+				+ pow((current_pixel[j+1]-db_pixel[l+1]),2)
+			      + pow((current_pixel[j+2]-db_pixel[l+2]),2));
+	      
+	      if (euclidianPixelDistance==0){
+		euclidianPixelDistance=1; //if same pixel, don't divide by zero but give big weight
+	      }
+	      colorDelta = colorDelta / euclidianPixelDistance; //and weigh the pixels lower if further
+	    }
+	  }
+	}
+
 	if ((current_pixel[j] + current_pixel[j+1] + current_pixel[j+2]) > darkThreshold) {
-	  runningTotalHammingDist += pixelDiff;
+	  runningTotalHammingDist += (int) colorDelta;
 	}
       }
-    }
-    //Determine lowest
-    if (runningTotalHammingDist < smallestHamming) {
-      smallestHamming = runningTotalHammingDist;
-      indexOfSmallestHamming = q;
-    }
-  }
-  
-  for (int k=0;k<comparisonImages.size();k++) {
-    int runningTotalHammingDist = 0;
-    for (int i=0;i<rows;i++){
-      for (int j=0;j<cols;j++){
-	if ( comparisonImages.at(k).at<uchar>(i,j) != curr.at<uchar>(i,j) ){ //recall uchar is 8 bit, 0->255
-	  runningTotalHammingDist++; 
-	}
-      }
+      //std::cerr << "running total of this row #" << i << ": " << runningTotalHammingDist << " on image " << q << "\n";
     }
 
-    //Determine lowest
-    if (runningTotalHammingDist < smallestHamming) {
-      smallestHamming = runningTotalHammingDist;
-      indexOfSmallestHamming = k;
-    }
+    addToNearestNeighbor(runningTotalHammingDist,q,indexOfNearestNeighbor, distToNearestNeighbor);
+    std::cerr << "working:" << q << " distance was " << runningTotalHammingDist  <<  "\n";   
+
   }
-  return indexOfSmallestHamming;
+  return indexOfNearestNeighbor;
 }
+/*
+	//Find smallest color difference
+	int indexOfClosestColor = -1;
+	int smallestDelta = 444;//Biggest euclidian RGB distance is sqrt(255^2 + 255^2 + 255^2) + 1 = 442.673
+	for (int k=0; k<NUMGLOVECOLORS; k++){
+	  int colorDeltaOfCurrentPixel[3];//BGR channels
+	  double euclidianDistance = 0;
+	  for (int l=0;l<3;l++){
+	    colorDeltaOfCurrentPixel[l] = isolatedFrame.ptr<uchar>(i)[j+l] - classificationColor[k][l];
+	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
+	  }
+	  euclidianDistance = sqrt(euclidianDistance);
+	  if (smallestDelta >= (int)euclidianDistance) {
+	    smallestDelta = (int)euclidianDistance;
+	    indexOfClosestColor = k;
+	  }
+	}
+*/
 
 //Relatively expensive operation, but only done ONCE per frame before lookup. (The database is processed offline with millions of images processed)
 //Currently does first increases brighness/contrast, then compares each pixel's hamming distance to calibrated colors
@@ -95,10 +129,6 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
   for (int i=0;i<rows;++i){
     for (int j=0;j<cols*3;j=j+3){//Columns are 3-channel
       //Currently best works when background frame is black (all zeroes), and background is near white - ie, detect foreground. Works quite well for testing. In future, add better background detection
-      /*if ( (abs(isolatedFrame.ptr<uchar>(i)[j] - shrunkBackgroundFrame.ptr<uchar>(i)[j]) < 100)
-         && (abs(isolatedFrame.ptr<uchar>(i)[j+1] - shrunkBackgroundFrame.ptr<uchar>(i)[j+1]) < 100)
-         && (abs(isolatedFrame.ptr<uchar>(i)[j+2] - shrunkBackgroundFrame.ptr<uchar>(i)[j+2]) < 100) ){*/
-
       if ( (isolatedFrame.ptr<uchar>(i)[j] < 100)
 	   && (isolatedFrame.ptr<uchar>(i)[j+1] < 100)
 	   && (isolatedFrame.ptr<uchar>(i)[j+2] < 100) ){
