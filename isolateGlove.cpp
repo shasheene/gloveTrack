@@ -2,62 +2,54 @@
 
 //Need to merge cleanupImage(), locateGlove etc into this function later
 Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
-  Mat returnFrame;
-  unprocessedCameraFrame.copyTo(returnFrame);
+  Mat returnFrame = unprocessedCameraFrame.clone();
 
-  //LOCATE GLOVE:
+  //LOCATE GLOVE (ie DETERMINE BOUNDING BOX):
   int numRows = unprocessedCameraFrame.rows;
   int numCols = unprocessedCameraFrame.cols;
-  for (int i=0;i<numRows;++i){
+
+  int gloveRowStart, gloveRowEnd, gloveColStart, gloveColEnd;
+  gloveColStart = numCols;//allbackwards on purpose
+  gloveRowStart = numRows;
+  gloveColEnd = 0;
+  gloveRowEnd = 0;
+
+  int darkThreshold = 64;
+  for (int i=0;i<numRows;i++){
     for (int j=0;j<numCols*3;j=j+3){//Columns are 3-channel
-      if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] < 100)
-	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] < 100)
-	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] < 100) ){
+      if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] > darkThreshold)
+	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] > darkThreshold)
+	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] > darkThreshold) ){//if found a reasonably good looking pixel
+	//later, scan nearby pixels
 	
-	increaseBrightnessAndConstrastOfPixel(unprocessedCameraFrame, i, j);
-	
-	//Find smallest color difference
-	int indexOfClosestColor = -1;
-	int smallestDelta = 444;//Biggest euclidian RGB distance is sqrt(255^2 + 255^2 + 255^2) + 1 = 442.673
-	for (int k=0; k< NUMGLOVECOLORS; k++){
-	  int colorDeltaOfCurrentPixel[3];//BGR channels
-	  double euclidianDistance = 0;
-	  for (int l=0;l<3;l++){
-	    colorDeltaOfCurrentPixel[l] = unprocessedCameraFrame.ptr<uchar>(i)[j+l] - classificationColor[k][l];
-	    euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
-	  }
-	  euclidianDistance = sqrt(euclidianDistance);
-	  if (smallestDelta >= (int)euclidianDistance) {
-	    smallestDelta = (int)euclidianDistance;
-	    indexOfClosestColor = k;
-	  }
+	if (i < gloveRowStart) {
+	  gloveRowStart = i;
 	}
 	
+	if ((j/3) < gloveColStart) {
+	  gloveColStart = (j/3);
+	}
+	if (i > gloveRowEnd) {
+	  gloveRowEnd = i;
+	}
 	
-	//if (indexOfClosestColor==0) { //if clothes/skin color make pixel white
-	//setPixelBlank(unprocessedCameraFrame,i,j);
-	//} else {
-	//Otherwise set pixel to the color determined
-	unprocessedCameraFrame.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
-	unprocessedCameraFrame.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
-	unprocessedCameraFrame.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
-	//}
-      } else {
-	//setPixelBlank(unprocessedCameraFrame,i,j);
+	if ((j/3) > gloveColEnd) {
+	  gloveColEnd = (j/3);
+	}
       }
     }
   }
+  std::cerr << "In (x,y): Start: (" << gloveColStart << "," << gloveRowStart <<  ") . End: (" << gloveColEnd << "," << gloveRowEnd << ")" << std::endl;      
+  Rect gloveLocation = Rect( gloveColStart, gloveRowStart, gloveColEnd-gloveColStart, gloveRowEnd-gloveRowStart);
+  Mat isolatedGlove = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
+  
+  returnFrame = reduceDimensions(isolatedGlove, 40,40);
+  //isolatedGlove.copyTo(returnFrame);
+  
+
+  //returnFrame = classifyColors(returnFrame);
+  
   return returnFrame;
-
-
-  //CROP
-
-
-  //CLASSIFY COLORS
-
-
-  //RETURN PERFECT QUERTY IMAGE
-
 }
 
 Rect locateGlove(Mat cameraFrame) {
@@ -70,47 +62,69 @@ Rect locateGlove(Mat cameraFrame) {
 
 //If in future may be worth it to merge this with cleanupImage so only a single cycle over fullsize image. But current is better for code clarity
 Mat reduceDimensions(Mat region, int targetWidth, int targetHeight) {
-  int horizontalSkip = region.cols / targetWidth; 
-  int verticalSkip = region.rows / targetHeight;
+  int columnSkip = region.cols / targetWidth; 
+  int rowSkip = region.rows / targetHeight;
 
   //Create new Mat large enough to hold glove image
-  Mat shrunkFrame = region(Rect(0,0,targetWidth, targetHeight)).clone();
-
-  int numRows = shrunkFrame.rows;
-  int numChannelsInImage = shrunkFrame.channels();
-  int numColumns = shrunkFrame.cols * numChannelsInImage;
-
-  //Clear matrix to black square: (todo: Figure out OpenCV Mat constructor "type" field that creates matrix of same colour type as region given any camera input)
-  for (int i=0;i< numRows; ++i){ 
-    uchar *p = shrunkFrame.ptr<uchar>(i);
-    for (int j=0;j<numColumns;++j){
-      p[j] = 0;
-    }
-  }
+  Mat shrunkFrame = Mat(targetWidth, targetHeight, CV_8UC3, Scalar(0,0,0));
 
   //Reduce colour depth reduction table (simplifies future comparisons)
   /*uchar table[256];
   for (int i=0;i< 256; ++i) {
     //table[i] = (uchar)(10 * (i/10));
     table[i] = (uchar)i; //No pixel colour change
-    }*/
+   }*/
 
   //Shrink image by merging adjacent pixels in square
-  for (int i=0;i< numRows; ++i){ 
-    uchar *p = shrunkFrame.ptr<uchar>(i);
-    for (int j=0;j<numColumns;++j){
-      //p[j] = table[region.ptr<uchar>(i*horizontalSkip)[j*verticalSkip]]/(horizontalSkip*verticalSkip);
-      p[j] = region.ptr<uchar>(i*horizontalSkip)[j*verticalSkip];
+  for (int i=0;i< shrunkFrame.rows; ++i){
+    for (int j=0;j<(shrunkFrame.cols*shrunkFrame.channels());j=j+3){
+     shrunkFrame.ptr<uchar>(i)[j] = region.ptr<uchar>(i*rowSkip)[j*columnSkip];
+     shrunkFrame.ptr<uchar>(i)[j+1] = region.ptr<uchar>(i*rowSkip)[j*columnSkip+1];
+     shrunkFrame.ptr<uchar>(i)[j+2] = region.ptr<uchar>(i*rowSkip)[j*columnSkip+2];
       //Merge adjacent pixels:
-      /*for (int k=0; k<horizontalSkip; k++){
-	p[j] += table[region.ptr<uchar>(i*horizontalSkip+k)[j*verticalSkip]]/(horizontalSkip*verticalSkip);
+      /*for (int k=0; k<columnSkip; k++){
+	p[j] += table[region.ptr<uchar>(i*columnSkip+k)[j*rowSkip]]/(columnSkip*rowSkip);
       }
-      for (int l=0; l<verticalSkip; l++){
-	p[j] += table[region.ptr<uchar>(i*horizontalSkip)[j*verticalSkip+l]]/(horizontalSkip*verticalSkip);
-	}*/
+      for (int l=0; l<rowSkip; l++){
+	p[j] += table[region.ptr<uchar>(i*columnSkip)[j*rowSkip+l]]/(columnSkip*rowSkip);
+      }*/
     }
   }
 
 
   return (shrunkFrame);
+}
+
+
+Mat classifyColors(Mat croppedImage) {
+  int numRows = croppedImage.rows; //should be fixed later on
+  int numCols = croppedImage.cols;
+  int numChannels = croppedImage.channels();
+
+  for (int i=0;i<numRows;++i){
+    for (int j=0;j<numCols*numChannels;j=j+numChannels){//Columns, 3 color channels - I think OpenCV is BGR (not RGB) 
+      //Now we have bounding box, classify colors
+      	
+      //Find smallest color difference
+      int indexOfClosestColor = -1;
+      int smallestDelta = 444;//Biggest euclidian RGB distance is sqrt(255^2 + 255^2 + 255^2) + 1 = 442.673
+      for (int k=0; k< NUMGLOVECOLORS; k++){
+	int colorDeltaOfCurrentPixel[3];//BGR channels
+	double euclidianDistance = 0;
+	for (int l=0;l<3;l++){
+	  colorDeltaOfCurrentPixel[l] = croppedImage.ptr<uchar>(i)[j+l] - classificationColor[k][l];
+	  euclidianDistance += pow(colorDeltaOfCurrentPixel[l],2);
+	}
+	euclidianDistance = sqrt(euclidianDistance);
+	if (smallestDelta >= (int)euclidianDistance) {
+	  smallestDelta = (int)euclidianDistance;
+	  indexOfClosestColor = k;
+	}
+      }
+      croppedImage.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
+      croppedImage.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
+      croppedImage.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
+    }
+  }
+  return croppedImage;
 }

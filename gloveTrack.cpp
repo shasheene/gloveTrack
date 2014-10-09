@@ -35,6 +35,17 @@ int main(int argc, char** argv){
   classificationColor[7] = Scalar(76, 40, 118, 0);
   classificationColor[8] = Scalar(71, 67, 109, 0);
 
+  /*
+  blenderGloveColor[0] = Scalar(37, 20, 114, 0);//red
+  blenderGloveColor[1] = Scalar(29, 15, 94, 0);//green
+  blenderGloveColor[2] = Scalar(20, 20, 38, 0);//blue
+  blenderGloveColor[3] = Scalar(41, 60, 24, 0);//black
+  blenderGloveColor[4] = Scalar(51, 40, 106, 0);//orange
+  blenderGloveColor[5] = Scalar(51, 63, 120, 0);//light blue
+  blenderGloveColor[6] = Scalar(45, 79, 86, 0);//purple
+  blenderGloveColor[7] = Scalar(76, 40, 118, 0);//pink
+  blenderGloveColor[8] = Scalar(71, 67, 109, 0);//
+  */
   debugMode=false;
   std::string trainingImagePath("db/blenderImg/");
   std::string testingImagePath("db/test");
@@ -51,12 +62,11 @@ int main(int argc, char** argv){
   int initialImageDatabaseSize = loadImageDatabase(comparisonImages, trainingImagePath);
   int testingImageDatabaseSize = loadImageDatabase(testingImages, testingImagePath);
 
-  waitKey(0);
-  for (int i=0;i<testingImageDatabaseSize;i++){
+  for (int i=0;i<comparisonImages.size();i++){
     std::cerr << "Testing image number " << i << std::endl;
 
     //Normalize query:
-    Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
+    Mat normalizedQueryImage = normalizeQueryImage(comparisonImages.at(i));
 
     //Output X nearest neighbors by weighted hamming distance, 
     //vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
