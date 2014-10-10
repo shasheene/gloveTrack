@@ -24,18 +24,30 @@ void drawCurrentClassificationColors(Mat &targetFrame);//draws vertical squares 
   
 int main(int argc, char** argv){
   int videoCaptureDeviceNumber = 1;
-  
-  classificationColor[0] = Scalar(50, 28, 33, 0);
-  classificationColor[1] = Scalar(29, 15, 94, 0);
-  classificationColor[2] = Scalar(20, 20, 38, 0);
-  classificationColor[3] = Scalar(41, 60, 24, 0);
-  classificationColor[4] = Scalar(51, 40, 106, 0);
-  classificationColor[5] = Scalar(51, 63, 120, 0);
-  classificationColor[6] = Scalar(45, 79, 86, 0);
-  classificationColor[7] = Scalar(76, 40, 118, 0);
-  classificationColor[8] = Scalar(71, 67, 109, 0);
-
   /*
+  classificationColor[0] = Scalar(37, 20, 114, 0);//red
+  classificationColor[1] = Scalar(29, 15, 94, 0);//green
+  classificationColor[2] = Scalar(68, 20, 38, 0);//dark blue
+  classificationColor[3] = Scalar(28, 28, 50, 0);//black (brown on blender)
+  classificationColor[4] = Scalar(51, 40, 106, 0);//orange (yellow on blender)
+  classificationColor[5] = Scalar(51, 63, 120, 0);//light blue
+  classificationColor[6] = Scalar(45, 79, 86, 0);//purple
+  classificationColor[7] = Scalar(255, 253, 255, 0);//pink (white in blender)
+  classificationColor[8] = Scalar(71, 67, 109, 0);//  
+  */
+
+  //Actual blender cols:
+  classificationColor[0] = Scalar(0, 0, 0, 255);//background (black on blender)
+  classificationColor[1] = Scalar(42, 24, 168, 0);//red
+  classificationColor[2] = Scalar(57, 81, 35, 0);//green
+  classificationColor[3] = Scalar(68, 40, 46, 0);//dark blue
+  classificationColor[4] = Scalar(28, 28, 50, 0);//black (brown on blender)
+  classificationColor[5] = Scalar(42, 223, 255, 0);//orange (yellow on blender)
+  classificationColor[6] = Scalar(255, 255, 90, 0);//lightblue
+  classificationColor[7] = Scalar(101, 55, 155, 0);//bright purple
+  classificationColor[8] = Scalar(255, 251, 255, 0); //pink (white in blender)
+
+  /*Old webcam:
   blenderGloveColor[0] = Scalar(37, 20, 114, 0);//red
   blenderGloveColor[1] = Scalar(29, 15, 94, 0);//green
   blenderGloveColor[2] = Scalar(20, 20, 38, 0);//blue
@@ -48,7 +60,7 @@ int main(int argc, char** argv){
   */
   debugMode=false;
   std::string trainingImagePath("db/blenderImg/");
-  std::string testingImagePath("db/test");
+  std::string testingImagePath("db/test/");
   parseCommandLineArgs(argc,argv);
 
   namedWindow("gloveTrack", 1);
@@ -59,23 +71,24 @@ int main(int argc, char** argv){
   int databaseImageHeight = 50;
 
   //Load image database
-  int initialImageDatabaseSize = loadImageDatabase(comparisonImages, trainingImagePath);
-  int testingImageDatabaseSize = loadImageDatabase(testingImages, testingImagePath);
-
-  for (int i=0;i<comparisonImages.size();i++){
+  loadImageDatabase(comparisonImages, trainingImagePath);
+  loadImageDatabase(testingImages, testingImagePath);
+  
+  for (int i=0;i<testingImages.size();i++){
     std::cerr << "Testing image number " << i << std::endl;
 
     //Normalize query:
-    Mat normalizedQueryImage = normalizeQueryImage(comparisonImages.at(i));
+    Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
+    imshow("gloveTrack",normalizedQueryImage);  
+    waitKey(0);
 
     //Output X nearest neighbors by weighted hamming distance, 
-    //vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
+    std::vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
 
-    //for (int i=0;i<nearestNeighboors.size();i++) {
-    //std::cout << nearestNeighboors.at(i) << " ";
-    //}
+    for (int i=0;i<nearestNeighboors.size();i++) {
+      std::cout << nearestNeighboors.at(i) << " ";
+    }
 
-    imshow("gloveTrack",normalizedQueryImage);  
     std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
     waitKey(0);
   }

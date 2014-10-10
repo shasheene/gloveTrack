@@ -15,9 +15,10 @@ extern std::vector<Mat> comparisonImages;
 
 extern Mat frame; // Entire camera frame
 
-extern Scalar classificationColor[];
-#define NUMGLOVECOLORS 9
-extern int classificationArrayIndex;
+
+#define NUMGLOVECOLORS 9 //8 unique colors, and index 0 being temp backgound removal
+extern Scalar classificationColor[];//camera image classification buckets
+extern int classificationArrayIndex; //Used for calibration mode mouse.cpp events
 
 //brightness and constrast changes
 #define ALPHA 1 //1.3

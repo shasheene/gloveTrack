@@ -1,6 +1,4 @@
 #include "lookupDatabase.h"
-#include "math.h"
-#include <iomanip>
 
 
 int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix){
@@ -16,7 +14,7 @@ int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepath
 	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
 	imagesLeftToLoad=false;
       } else {
-	imageVector.push_back(loadedImage.clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
+	imageVector.push_back(normalizeQueryImage(loadedImage).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
 	index++;
       }
     }
@@ -56,9 +54,6 @@ void addToNearestNeighbor(int euclidianDist, int indexOfCandidate ,
 }
 
 std::vector<int> queryDatabasePose(Mat curr) {
-  int rows = curr.rows;
-  int cols = curr.cols;
-  int channels = curr.channels();//img array of pixels with multiple colour channels
   //Using the Vec3b slowed current from 15ms to 30ms, so usig pointers
 
   std::vector<int> distToNearestNeighbor;
@@ -66,14 +61,14 @@ std::vector<int> queryDatabasePose(Mat curr) {
   int darkThreshold = 180;
   for (int q=0;q<comparisonImages.size();q++) {
     int runningTotalHammingDist = 0;
-    for (int i=0;i<rows; ++i){ 
+    for (int i=0;i<curr.rows; ++i){ 
       uchar *current_pixel = curr.ptr<uchar>(i);
-      for (int j=0;j<cols;j=j+3){
+      for (int j=0;j<curr.cols*curr.channels();j=j+curr.channels()){
 	int colorDelta =0;
 	//calculateDistanceMetric. Over every pixel of comparison image, weighted by distnace
-	for (int k=0;k<curr.rows; ++k){
+	for (int k=0;k<comparisonImages.at(q).rows; ++k){
 	  uchar *db_pixel = comparisonImages.at(q).ptr<uchar>(k);    
-	  for (int l=0;l<curr.cols; l=l+3){
+	  for (int l=0;l<comparisonImages.at(q).cols*comparisonImages.at(q).channels(); l=l+3){
 	    float euclidianPixelDistance =  sqrt( pow((i-k),2) + pow((j/3-l/3),2) );
 	    if (euclidianPixelDistance <= 7) { //we only consider pixels within 7 pixels radius. For testing 2 pixels is good
 	      //std::cerr << " Comparing to pixel (" << k << "," << l/3 << ") which has euclidian 2D distance " << euclidianPixelDistance << " " << "\n";      
@@ -130,7 +125,7 @@ Mat cleanupImage(Mat isolatedFrame, Mat shrunkBackgroundFrame) {
   int rows = returnFrame.rows;
   int cols = returnFrame.cols;
   for (int i=0;i<rows;++i){
-    for (int j=0;j<cols*3;j=j+3){//Columns are 3-channel
+    for (int j=0;j<cols*returnFrame.channels();j=j+returnFrame.channels()){//Columns are 3-channel
       //Currently best works when background frame is black (all zeroes), and background is near white - ie, detect foreground. Works quite well for testing. In future, add better background detection
       if ( (isolatedFrame.ptr<uchar>(i)[j] < 100)
 	   && (isolatedFrame.ptr<uchar>(i)[j+1] < 100)

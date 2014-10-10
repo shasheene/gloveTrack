@@ -3,6 +3,13 @@
 
 #include "libsAndConst.h"
 
+#include "isolateGlove.h"
+
+#include "math.h" //sqrt/pow
+#include <iomanip>
+
+
+
 int loadImageDatabase(std::vector<Mat>& imageVector,std::string databaseFilepathPrefix); //Reads in images 0 to n at filepath $(databaseDirectoryPath)n.jpg, places into imageVector and returns n. (Note the imageVector is being passed by reference!)
 
 void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::string databaseFilepathPrefix);

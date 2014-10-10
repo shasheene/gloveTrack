@@ -7,6 +7,7 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
   //LOCATE GLOVE (ie DETERMINE BOUNDING BOX):
   int numRows = unprocessedCameraFrame.rows;
   int numCols = unprocessedCameraFrame.cols;
+  int numChannels = unprocessedCameraFrame.channels();
 
   int gloveRowStart, gloveRowEnd, gloveColStart, gloveColEnd;
   gloveColStart = numCols;//allbackwards on purpose
@@ -14,9 +15,9 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
   gloveColEnd = 0;
   gloveRowEnd = 0;
 
-  int darkThreshold = 64;
+  int darkThreshold = 64;//64 old threshold
   for (int i=0;i<numRows;i++){
-    for (int j=0;j<numCols*3;j=j+3){//Columns are 3-channel
+    for (int j=0;j<numCols*numChannels;j=j+numChannels){//Columns are 3-channel
       if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] > darkThreshold)
 	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] > darkThreshold)
 	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] > darkThreshold) ){//if found a reasonably good looking pixel
@@ -41,13 +42,9 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
   }
   std::cerr << "In (x,y): Start: (" << gloveColStart << "," << gloveRowStart <<  ") . End: (" << gloveColEnd << "," << gloveRowEnd << ")" << std::endl;      
   Rect gloveLocation = Rect( gloveColStart, gloveRowStart, gloveColEnd-gloveColStart, gloveRowEnd-gloveRowStart);
-  Mat isolatedGlove = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
-  
-  returnFrame = reduceDimensions(isolatedGlove, 40,40);
-  //isolatedGlove.copyTo(returnFrame);
-  
-
-  //returnFrame = classifyColors(returnFrame);
+  //returnFrame = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
+  returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
+  returnFrame = classifyColors(returnFrame);//classified
   
   return returnFrame;
 }
@@ -68,16 +65,9 @@ Mat reduceDimensions(Mat region, int targetWidth, int targetHeight) {
   //Create new Mat large enough to hold glove image
   Mat shrunkFrame = Mat(targetWidth, targetHeight, CV_8UC3, Scalar(0,0,0));
 
-  //Reduce colour depth reduction table (simplifies future comparisons)
-  /*uchar table[256];
-  for (int i=0;i< 256; ++i) {
-    //table[i] = (uchar)(10 * (i/10));
-    table[i] = (uchar)i; //No pixel colour change
-   }*/
-
   //Shrink image by merging adjacent pixels in square
   for (int i=0;i< shrunkFrame.rows; ++i){
-    for (int j=0;j<(shrunkFrame.cols*shrunkFrame.channels());j=j+3){
+    for (int j=0;j<(shrunkFrame.cols*shrunkFrame.channels());j=j+shrunkFrame.channels()){
      shrunkFrame.ptr<uchar>(i)[j] = region.ptr<uchar>(i*rowSkip)[j*columnSkip];
      shrunkFrame.ptr<uchar>(i)[j+1] = region.ptr<uchar>(i*rowSkip)[j*columnSkip+1];
      shrunkFrame.ptr<uchar>(i)[j+2] = region.ptr<uchar>(i*rowSkip)[j*columnSkip+2];
@@ -121,9 +111,11 @@ Mat classifyColors(Mat croppedImage) {
 	  indexOfClosestColor = k;
 	}
       }
-      croppedImage.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
-      croppedImage.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
-      croppedImage.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
+      if (indexOfClosestColor!=0) { //leave blank pixel if classified as background
+	croppedImage.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
+	croppedImage.ptr<uchar>(i)[j+1] = classificationColor[indexOfClosestColor][1];
+	croppedImage.ptr<uchar>(i)[j+2] = classificationColor[indexOfClosestColor][2];
+      }
     }
   }
   return croppedImage;
