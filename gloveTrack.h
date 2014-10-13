@@ -18,4 +18,11 @@
 #include "lookupDatabase.h"
 #include "mouse.h"
 
+
+//For GNU getopt command line arg parsing
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #endif
