@@ -15,13 +15,19 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
   gloveColEnd = 0;
   gloveRowEnd = 0;
 
-  int darkThreshold = 64;//64 old threshold
+  //int darkThreshold = thresholdBrightness;//64 old threshold
+  int darkThreshold = 170;//64 old threshold
   for (int i=0;i<numRows;i++){
     for (int j=0;j<numCols*numChannels;j=j+numChannels){//Columns are 3-channel
       if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] > darkThreshold)
 	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] > darkThreshold)
 	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] > darkThreshold) ){//if found a reasonably good looking pixel
+      /*
+      if ( sqrt(pow(unprocessedCameraFrame.ptr<uchar>(i)[j],2) +
+	   pow(unprocessedCameraFrame.ptr<uchar>(i)[j+1],2) +
+		pow(unprocessedCameraFrame.ptr<uchar>(i)[j+2],2)) > darkThreshold ){//if found a reasonably good looking pixel
 	//later, scan nearby pixels
+	*/
 	
 	if (i < gloveRowStart) {
 	  gloveRowStart = i;
@@ -40,9 +46,26 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
       }
     }
   }
+
+  //If something strange happend, just make tiny square
+  if (gloveColEnd <= gloveColStart) {
+    gloveColEnd = 100;
+    gloveColStart = 0;
+  }
+
+  if (gloveRowEnd <= gloveRowStart) {
+    gloveRowEnd = 100;
+    gloveRowStart = 0;
+  }
+
+
   std::cerr << "In (x,y): Start: (" << gloveColStart << "," << gloveRowStart <<  ") . End: (" << gloveColEnd << "," << gloveRowEnd << ")" << std::endl;      
   Rect gloveLocation = Rect( gloveColStart, gloveRowStart, gloveColEnd-gloveColStart, gloveRowEnd-gloveRowStart);
-  //returnFrame = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
+
+
+  rectangle(unprocessedCameraFrame, gloveLocation, Scalar(0,0,0)); //Draw rectangle represententing tracked location
+  returnFrame = unprocessedCameraFrame.clone();
+  returnFrame = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
   returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
   returnFrame = classifyColors(returnFrame);//classified
   

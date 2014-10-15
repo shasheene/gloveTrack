@@ -13,6 +13,8 @@ extern double iHeight;
 extern bool debugMode;
 extern std::vector<Mat> comparisonImages;
 
+extern int thresholdBrightness;
+
 extern Mat frame; // Entire camera frame
 
 

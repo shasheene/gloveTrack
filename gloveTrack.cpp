@@ -11,6 +11,7 @@ bool debugMode;
 std::vector<Mat> comparisonImages;
 std::vector<Mat> testingImages;
 double iWidth, iHeight;
+int thresholdBrightness;
 
 Mat frame;
 
@@ -138,12 +139,14 @@ int main(int argc, char** argv){
       frame = captureFrame(captureDevice);
     
       Rect gloveRegion = locateGlove(frame); //No actual tracking yet (returns fixed region)
-      rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
+      //rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
     
-      Mat currentFrame = frame(gloveRegion);
+      //Mat currentFrame = frame(gloveRegion);
       Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
-      currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
-    
+      //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
+      Mat currentFrame = frame;
+      Mat shrunkFrame = normalizeQueryImage(currentFrame);
+
      if (slowMode == true){
        //draw on screen (later debug only)
        Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
@@ -151,8 +154,8 @@ int main(int argc, char** argv){
      }
 
       //Second run over image for faster lookup later. (May merge with cleanup)
-      Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
-      Rect shrunkFrameScreenLocation(Point(0,0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
+      //Mat shrunkFrame = reduceDimensions(currentFrame, 50, 50);
+     Rect shrunkFrameScreenLocation(Point(0,0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
       shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
     
       if (comparisonImages.size() > 0){
