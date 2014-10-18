@@ -4,30 +4,43 @@
 Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
   Mat returnFrame = unprocessedCameraFrame.clone();
 
+  //int darkThreshold = thresholdBrightness;//64 old threshold
+  //int darkThreshold = 170;//64 old threshold
+  Rect gloveLocation = locateGlove(unprocessedCameraFrame, 64);//dark threshold
+  
+  rectangle(unprocessedCameraFrame, gloveLocation, Scalar(0,0,0)); //Draw rectangle represententing tracked location
+  //returnFrame = unprocessedCameraFrame;
+  
+  returnFrame = unprocessedCameraFrame(gloveLocation);//CROP
+  returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
+  //returnFrame = classifyColors(returnFrame);//classified
+  
+  return returnFrame;
+}
+
+Rect locateGlove(Mat region, int darkThreshold) {
   //LOCATE GLOVE (ie DETERMINE BOUNDING BOX):
-  int numRows = unprocessedCameraFrame.rows;
-  int numCols = unprocessedCameraFrame.cols;
-  int numChannels = unprocessedCameraFrame.channels();
+  int numRows = region.rows;
+  int numCols = region.cols;
+  int numChannels = region.channels();
 
   int gloveRowStart, gloveRowEnd, gloveColStart, gloveColEnd;
   gloveColStart = numCols;//allbackwards on purpose
   gloveRowStart = numRows;
   gloveColEnd = 0;
   gloveRowEnd = 0;
-
-  //int darkThreshold = thresholdBrightness;//64 old threshold
-  int darkThreshold = 170;//64 old threshold
+  
   for (int i=0;i<numRows;i++){
     for (int j=0;j<numCols*numChannels;j=j+numChannels){//Columns are 3-channel
-      if ( (unprocessedCameraFrame.ptr<uchar>(i)[j] > darkThreshold)
-	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+1] > darkThreshold)
-	   && (unprocessedCameraFrame.ptr<uchar>(i)[j+2] > darkThreshold) ){//if found a reasonably good looking pixel
-      /*
-      if ( sqrt(pow(unprocessedCameraFrame.ptr<uchar>(i)[j],2) +
-	   pow(unprocessedCameraFrame.ptr<uchar>(i)[j+1],2) +
-		pow(unprocessedCameraFrame.ptr<uchar>(i)[j+2],2)) > darkThreshold ){//if found a reasonably good looking pixel
-	//later, scan nearby pixels
-	*/
+      if ( (region.ptr<uchar>(i)[j] > darkThreshold)
+	   && (region.ptr<uchar>(i)[j+1] > darkThreshold)
+	   && (region.ptr<uchar>(i)[j+2] > darkThreshold) ){//if found a reasonably good looking pixel
+	/*
+	  if ( sqrt(pow(region.ptr<uchar>(i)[j],2) +
+	  pow(region.ptr<uchar>(i)[j+1],2) +
+	  pow(region.ptr<uchar>(i)[j+2],2)) > darkThreshold ){//if found a reasonably good looking pixel
+	  //later, scan nearby pixels
+	  */
 	
 	if (i < gloveRowStart) {
 	  gloveRowStart = i;
@@ -46,38 +59,19 @@ Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
       }
     }
   }
-
+  
   //If something strange happend, just make tiny square
   if (gloveColEnd <= gloveColStart) {
     gloveColEnd = 100;
     gloveColStart = 0;
   }
-
+  
   if (gloveRowEnd <= gloveRowStart) {
     gloveRowEnd = 100;
     gloveRowStart = 0;
   }
-
-
-  std::cerr << "In (x,y): Start: (" << gloveColStart << "," << gloveRowStart <<  ") . End: (" << gloveColEnd << "," << gloveRowEnd << ")" << std::endl;      
-  Rect gloveLocation = Rect( gloveColStart, gloveRowStart, gloveColEnd-gloveColStart, gloveRowEnd-gloveRowStart);
-
-
-  rectangle(unprocessedCameraFrame, gloveLocation, Scalar(0,0,0)); //Draw rectangle represententing tracked location
-  returnFrame = unprocessedCameraFrame.clone();
-  returnFrame = (unprocessedCameraFrame(gloveLocation)).clone();//CROP
-  returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
-  returnFrame = classifyColors(returnFrame);//classified
   
-  return returnFrame;
-}
-
-Rect locateGlove(Mat cameraFrame) {
-  Rect gloveLocation;
-  //Add smarts
-
-  gloveLocation = Rect( (iWidth/2.0), (iHeight/2.0), 200, 200);
-  return gloveLocation;
+  return( Rect( gloveColStart, gloveRowStart, gloveColEnd-gloveColStart, gloveRowEnd-gloveRowStart) );
 }
 
 //If in future may be worth it to merge this with cleanupImage so only a single cycle over fullsize image. But current is better for code clarity
@@ -105,7 +99,7 @@ Mat reduceDimensions(Mat region, int targetWidth, int targetHeight) {
   }
 
 
-  return (shrunkFrame);
+  return (shrunkFrame.clone());
 }
 
 

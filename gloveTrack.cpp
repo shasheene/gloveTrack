@@ -38,7 +38,7 @@ int main(int argc, char** argv){
   setMouseCallback("gloveTrack", mouseCallback, NULL);
 
   if (realTimeMode==false){
-    classificationColor[0] = Scalar(37, 20, 114, 0);//red
+    /*classificationColor[0] = Scalar(37, 20, 114, 0);//red
     classificationColor[1] = Scalar(29, 15, 94, 0);//green
     classificationColor[2] = Scalar(68, 20, 38, 0);//dark blue
     classificationColor[3] = Scalar(28, 28, 50, 0);//black (brown on blender)
@@ -47,8 +47,8 @@ int main(int argc, char** argv){
     classificationColor[6] = Scalar(45, 79, 86, 0);//purple
     classificationColor[7] = Scalar(255, 253, 255, 0);//pink (white in blender)
     classificationColor[8] = Scalar(71, 67, 109, 0);//  
-  
-    /*
+    */
+    
     //Actual blender cols:
     classificationColor[0] = Scalar(0, 0, 0, 255);//background (black on blender)
     classificationColor[1] = Scalar(42, 24, 168, 0);//red
@@ -59,7 +59,7 @@ int main(int argc, char** argv){
     classificationColor[6] = Scalar(255, 255, 90, 0);//lightblue
     classificationColor[7] = Scalar(101, 55, 155, 0);//bright purple
     classificationColor[8] = Scalar(255, 251, 255, 0); //pink (white in blender)
-    */
+    
     /*Old webcam:
       blenderGloveColor[0] = Scalar(37, 20, 114, 0);//red
       blenderGloveColor[1] = Scalar(29, 15, 94, 0);//green
@@ -77,23 +77,25 @@ int main(int argc, char** argv){
     int databaseImageHeight = 50;
 
     //Load image database
-    loadImageDatabase(comparisonImages, trainingImagePath);
-    loadImageDatabase(testingImages, testingImagePath);
+    //loadImageDatabase(comparisonImages, trainingImagePath);
+    //loadImageDatabase(testingImages, testingImagePath);
+    loadImageDatabase(comparisonImages, testingImagePath);
+    loadImageDatabase(testingImages, trainingImagePath);
   
     for (int i=0;i<testingImages.size();i++){
       std::cerr << "Testing image number " << i << std::endl;
 
       //Normalize query:
-      Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
-      imshow("gloveTrack",normalizedQueryImage);  
+      //Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
+      imshow("gloveTrack",testingImages.at(i));  
       waitKey(0);
 
       //Output X nearest neighbors by weighted hamming distance, 
-      std::vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
+      /*std::vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
 
       for (int i=0;i<nearestNeighboors.size();i++) {
 	std::cout << nearestNeighboors.at(i) << " ";
-      }
+	}*/
 
       std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
       waitKey(0);
@@ -138,8 +140,8 @@ int main(int argc, char** argv){
       double t = (double)getTickCount(); //fps calculation
       frame = captureFrame(captureDevice);
     
-      Rect gloveRegion = locateGlove(frame); //No actual tracking yet (returns fixed region)
-      //rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
+      Rect gloveRegion = locateGlove(frame, thresholdBrightness); //No actual tracking yet (returns fixed region)
+      rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
     
       //Mat currentFrame = frame(gloveRegion);
       Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
@@ -213,10 +215,10 @@ int main(int argc, char** argv){
 
 //for debug:
 void drawCurrentClassificationColors(Mat &frame) {
-  Rect classificationRect = Rect( (iWidth/2.0), (iHeight/20.0), 25, 45); //area to output classification colors
+  Rect classificationRect = Rect( iWidth - 25 , (iHeight/20.0), 25, 45); //area to output classification colors
   
   //draw little square to show which color is being calibrated
-  Rect selectorSymbolRect = Rect( (iWidth/2.0) - classificationRect.width/2, (iHeight/20.0)+ classificationArrayIndex*classificationRect.height +classificationRect.height/2, 10, 10); //nicely located to the left of the classification colors
+  Rect selectorSymbolRect = Rect(iWidth - classificationRect.width/2 - 25, (iHeight/20.0)+ classificationArrayIndex*classificationRect.height +classificationRect.height/2, 10, 10); //nicely located to the left of the classification colors
   Mat selectorSymbol(frame,selectorSymbolRect);
   selectorSymbol = Scalar(0,0,0,0);//black square;
   selectorSymbol.copyTo(frame(selectorSymbolRect));
