@@ -4,7 +4,7 @@
 #include "libsAndConst.h"
 
 //Takes camera frame (from decent camera - not just bad color webcam) and returns image ready for query
-Mat normalizeQueryImage(Mat unprocessedCameraFrame);
+Mat normalizeQueryImage(Mat unprocessedCameraFrame, int darkThreshold);
 
 Mat classifyColors(Mat croppedImage);
 

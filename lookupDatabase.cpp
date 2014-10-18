@@ -1,7 +1,7 @@
 #include "lookupDatabase.h"
 
 
-int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix){
+int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix, int thresholdBrightness){
     bool imagesLeftToLoad=true;
     int index = 1; //start from 1 for blender
     while (imagesLeftToLoad==true) {
@@ -14,7 +14,7 @@ int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepath
 	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
 	imagesLeftToLoad=false;
       } else {
-	imageVector.push_back(normalizeQueryImage(loadedImage).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
+	imageVector.push_back(normalizeQueryImage(loadedImage, thresholdBrightness).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
 	index++;
       }
     }

@@ -77,16 +77,15 @@ int main(int argc, char** argv){
     int databaseImageHeight = 50;
 
     //Load image database
-    //loadImageDatabase(comparisonImages, trainingImagePath);
-    //loadImageDatabase(testingImages, testingImagePath);
-    loadImageDatabase(comparisonImages, testingImagePath);
-    loadImageDatabase(testingImages, trainingImagePath);
+    //loadImageDatabase(comparisonImages, trainingImagePath, 64); //correct way around
+    //loadImageDatabase(testingImages, testingImagePath, 64);
+    loadImageDatabase(comparisonImages, testingImagePath, 64); //wrong for testing
+    loadImageDatabase(testingImages, trainingImagePath, 64);
   
     for (int i=0;i<testingImages.size();i++){
       std::cerr << "Testing image number " << i << std::endl;
 
       //Normalize query:
-      //Mat normalizedQueryImage = normalizeQueryImage(testingImages.at(i));
       imshow("gloveTrack",testingImages.at(i));  
       waitKey(0);
 
@@ -109,10 +108,9 @@ int main(int argc, char** argv){
     classificationColor[5] = Scalar(144, 143, 85, 0);
     classificationColor[6] = Scalar(123, 79, 151, 0);
     classificationColor[6] = Scalar(255, 255, 255, 0); //black temporarily (should be glove color/negative space)
-    int thresholdBrightness=165;
+    int thresholdBrightness=64;
 
-    std::string shrunkImagePath("db/trainingSet");
-    std::string bigImagePath("db/big/bigSet");
+    std::string databaseImagePath("db/blenderImg");//query image path - temp
 
     VideoCapture captureDevice;
     openCaptureDevice(captureDevice, videoCaptureDeviceNumber); //videoCaptureDeviceNumber from -c argument
@@ -129,7 +127,7 @@ int main(int argc, char** argv){
     int databaseImageHeight = 50;
 
     //Load image database
-    int initialImageDatabaseSize = loadImageDatabase(comparisonImages, shrunkImagePath);
+    int initialImageDatabaseSize = loadImageDatabase(comparisonImages, databaseImagePath, 64);
   
     //Later load classificationColors from image file
 
@@ -139,16 +137,15 @@ int main(int argc, char** argv){
     while( true ) {
       double t = (double)getTickCount(); //fps calculation
       frame = captureFrame(captureDevice);
-    
-      Rect gloveRegion = locateGlove(frame, thresholdBrightness); //No actual tracking yet (returns fixed region)
-      rectangle(frame, gloveRegion, Scalar(0,0,0)); //Draw rectangle represententing tracked location
-    
-      //Mat currentFrame = frame(gloveRegion);
-      Mat backgroundRemovalFrame = backgroundFrame(gloveRegion);
-      //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
-      Mat currentFrame = frame;
-      Mat shrunkFrame = normalizeQueryImage(currentFrame);
 
+      //In future, do image processing here
+      //Mat backgroundRemovalFrame = backgroundFrame(gloveBoundingBox);
+      //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
+
+      Mat currentFrame = frame;
+      Mat shrunkFrame = normalizeQueryImage(frame, thresholdBrightness);
+
+      
      if (slowMode == true){
        //draw on screen (later debug only)
        Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
@@ -194,7 +191,7 @@ int main(int argc, char** argv){
       case 'q':
 	if (debugMode==true) {
 	  //Backup unsaved comparison image files:
-	  saveDatabase(comparisonImages, initialImageDatabaseSize,  shrunkImagePath);
+	  saveDatabase(comparisonImages, initialImageDatabaseSize,  databaseImagePath);
 	  
 	  //Later, save classification colors to image file
 	  for (int i=0; i< NUMGLOVECOLORS; i++){

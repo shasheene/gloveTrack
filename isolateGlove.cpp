@@ -1,19 +1,13 @@
 #include "isolateGlove.h"
 
 //Need to merge cleanupImage(), locateGlove etc into this function later
-Mat normalizeQueryImage(Mat unprocessedCameraFrame) {
-  Mat returnFrame = unprocessedCameraFrame.clone();
-
-  //int darkThreshold = thresholdBrightness;//64 old threshold
-  //int darkThreshold = 170;//64 old threshold
-  Rect gloveLocation = locateGlove(unprocessedCameraFrame, 64);//dark threshold
+Mat normalizeQueryImage(Mat unprocessedCameraFrame, int thresholdBrightness) {
+  Rect gloveBoundingBox = locateGlove(unprocessedCameraFrame, thresholdBrightness);
+  //rectangle(unprocessedCameraFrame, gloveBoundingBox, Scalar(0,0,0)); //Draw rectangle represententing tracked location
   
-  rectangle(unprocessedCameraFrame, gloveLocation, Scalar(0,0,0)); //Draw rectangle represententing tracked location
-  //returnFrame = unprocessedCameraFrame;
-  
-  returnFrame = unprocessedCameraFrame(gloveLocation);//CROP
+  Mat returnFrame = unprocessedCameraFrame(gloveBoundingBox).clone();//CROP
   returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
-  //returnFrame = classifyColors(returnFrame);//classified
+  returnFrame = classifyColors(returnFrame);//classified
   
   return returnFrame;
 }
