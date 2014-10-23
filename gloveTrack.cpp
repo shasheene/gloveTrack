@@ -18,6 +18,8 @@ Mat frame;
 Scalar classificationColor[NUMGLOVECOLORS];
 int classificationArrayIndex;//used in mouse call back
 
+Scalar blenderGloveColor[NUMGLOVECOLORS];
+
 //Debug and helper function
 bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber);
 void drawCurrentClassificationColors(Mat &targetFrame);//draws vertical squares representing classifcation color
@@ -36,9 +38,19 @@ int main(int argc, char** argv){
 
   namedWindow("gloveTrack", 1);
   setMouseCallback("gloveTrack", mouseCallback, NULL);
+	//REMEMBER OpenCV color space is BGR, not RGB
+    //Actual blender cols:
+    blenderGloveColor[0] = Scalar(34, 29, 180, 0);//red
+    blenderGloveColor[1] = Scalar(9, 65, 2, 0);//green
+    blenderGloveColor[2] = Scalar(99, 58, 35, 0);//dark blue
+    blenderGloveColor[3] = Scalar(42, 41, 61, 0);//black (brown on blender)
+    blenderGloveColor[4] = Scalar(21, 138, 247, 0);//orange (yellow on blender)
+    blenderGloveColor[5] = Scalar(154, 153, 67, 0);//light blue
+    blenderGloveColor[6] = Scalar(137, 101, 171, 0);//purple
+    blenderGloveColor[7] = Scalar(90, 106, 253, 0);//pink (white in blender)
 
-  if (realTimeMode==false){
-    /*classificationColor[0] = Scalar(37, 20, 114, 0);//red
+    /*
+    classificationColor[0] = Scalar(37, 20, 114, 0);//red
     classificationColor[1] = Scalar(29, 15, 94, 0);//green
     classificationColor[2] = Scalar(68, 20, 38, 0);//dark blue
     classificationColor[3] = Scalar(28, 28, 50, 0);//black (brown on blender)
@@ -46,68 +58,44 @@ int main(int argc, char** argv){
     classificationColor[5] = Scalar(51, 63, 120, 0);//light blue
     classificationColor[6] = Scalar(45, 79, 86, 0);//purple
     classificationColor[7] = Scalar(255, 253, 255, 0);//pink (white in blender)
-    classificationColor[8] = Scalar(71, 67, 109, 0);//  
     */
-    
-    //Actual blender cols:
-    classificationColor[0] = Scalar(0, 0, 0, 255);//background (black on blender)
-    classificationColor[1] = Scalar(42, 24, 168, 0);//red
-    classificationColor[2] = Scalar(57, 81, 35, 0);//green
-    classificationColor[3] = Scalar(68, 40, 46, 0);//dark blue
-    classificationColor[4] = Scalar(28, 28, 50, 0);//black (brown on blender)
-    classificationColor[5] = Scalar(42, 223, 255, 0);//orange (yellow on blender)
-    classificationColor[6] = Scalar(255, 255, 90, 0);//lightblue
-    classificationColor[7] = Scalar(101, 55, 155, 0);//bright purple
-    classificationColor[8] = Scalar(255, 251, 255, 0); //pink (white in blender)
-    
-    /*Old webcam:
-      blenderGloveColor[0] = Scalar(37, 20, 114, 0);//red
-      blenderGloveColor[1] = Scalar(29, 15, 94, 0);//green
-      blenderGloveColor[2] = Scalar(20, 20, 38, 0);//blue
-      blenderGloveColor[3] = Scalar(41, 60, 24, 0);//black
-      blenderGloveColor[4] = Scalar(51, 40, 106, 0);//orange
-      blenderGloveColor[5] = Scalar(51, 63, 120, 0);//light blue
-      blenderGloveColor[6] = Scalar(45, 79, 86, 0);//purple
-      blenderGloveColor[7] = Scalar(76, 40, 118, 0);//pink
-      blenderGloveColor[8] = Scalar(71, 67, 109, 0);//
-    */
-
+    //manually picked from test0001.png camera image
+    classificationColor[0] = Scalar(34, 29, 180, 0);//red
+    classificationColor[1] = Scalar(9, 65, 2, 0);//green
+    classificationColor[2] = Scalar(99, 58, 35, 0);//dark blue
+    classificationColor[3] = Scalar(42, 41, 61, 0);//black (brown on blender)
+    classificationColor[4] = Scalar(21, 138, 247, 0);//orange (yellow on blender)
+    classificationColor[5] = Scalar(154, 153, 67, 0);//light blue
+    classificationColor[6] = Scalar(137, 101, 171, 0);//purple
+    classificationColor[7] = Scalar(90, 106, 253, 0);//pink (white in blender)
+  if (realTimeMode==false){
     //Size of reduced dimensionality image
     int databaseImageWidth = 50;
     int databaseImageHeight = 50;
 
     //Load image database
-    //loadImageDatabase(comparisonImages, trainingImagePath, 64); //correct way around
-    //loadImageDatabase(testingImages, testingImagePath, 64);
-    loadImageDatabase(comparisonImages, testingImagePath, 64); //wrong for testing
-    loadImageDatabase(testingImages, trainingImagePath, 64);
+    loadImageDatabase(comparisonImages, trainingImagePath, 64); //wrong for testing
+
+    loadCameraImageDatabase(testingImages, testingImagePath, 64);
   
-    for (int i=0;i<testingImages.size();i++){
+    for (int i=0;i<comparisonImages.size();i++){
       std::cerr << "Testing image number " << i << std::endl;
 
       //Normalize query:
-      imshow("gloveTrack",testingImages.at(i));  
+      imshow("gloveTrack",comparisonImages.at(i));  
       waitKey(0);
 
       //Output X nearest neighbors by weighted hamming distance, 
-      /*std::vector<int> nearestNeighboors = queryDatabasePose(normalizedQueryImage);
+      /*std::vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
 
       for (int i=0;i<nearestNeighboors.size();i++) {
 	std::cout << nearestNeighboors.at(i) << " ";
-	}*/
+      }
 
-      std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
+      std::cout << "\nWaiting for user input before moving  to next image " << std::endl;*/
       waitKey(0);
     }
   } else {
-    classificationColor[0] = Scalar(82, 35, 42, 0);
-    classificationColor[1] = Scalar(20, 8, 155, 0);
-    classificationColor[2] = Scalar(20, 20, 38, 0);
-    classificationColor[3] = Scalar(89, 95, 10, 0);
-    classificationColor[4] = Scalar(41, 130, 197, 0);
-    classificationColor[5] = Scalar(144, 143, 85, 0);
-    classificationColor[6] = Scalar(123, 79, 151, 0);
-    classificationColor[6] = Scalar(255, 255, 255, 0); //black temporarily (should be glove color/negative space)
     int thresholdBrightness=64;
 
     std::string databaseImagePath("db/blenderImg");//query image path - temp

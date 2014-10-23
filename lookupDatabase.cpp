@@ -21,6 +21,26 @@ int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepath
     return index;
 }
 
+int loadCameraImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix, int thresholdBrightness){
+    bool imagesLeftToLoad=true;
+    int index = 1; //start from 1 for blender
+    while (imagesLeftToLoad==true) {
+      std::string imageInputFilepath(concatStringInt(databaseFilepathPrefix,index));
+      imageInputFilepath.append(".png");//png for blender images. JPG for opencv saved img
+      std::cerr << "Loading into database:" << imageInputFilepath << std::endl;
+      
+      Mat loadedImage = imread(imageInputFilepath,1);
+      if (loadedImage.data==NULL) {
+	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
+	imagesLeftToLoad=false;
+      } else {
+	imageVector.push_back(tempNormalizeCamera(loadedImage, thresholdBrightness).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
+	index++;
+      }
+    }
+    return index;
+}
+
 void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::string databaseFilepathPrefix){ 
   for (int i=originalDatabaseSize;i<imageVector.size();i++){
     std::string imageOutputFilepath(concatStringInt(databaseFilepathPrefix,i));
@@ -50,7 +70,6 @@ void addToNearestNeighbor(int euclidianDist, int indexOfCandidate ,
     distToNearestNeighbor.push_back(euclidianDist);
     indexOfNearestNeighbor.push_back(indexOfCandidate);
   }
-
 }
 
 std::vector<int> queryDatabasePose(Mat curr) {
