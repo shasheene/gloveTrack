@@ -18,7 +18,7 @@ Mat tempNormalizeCamera(Mat unprocessedCameraFrame, int thresholdBrightness) {
   //rectangle(unprocessedCameraFrame, gloveBoundingBox, Scalar(0,0,0)); //Draw rectangle represententing tracked location
   
   Mat returnFrame = unprocessedCameraFrame(gloveBoundingBox).clone();//CROP
-  //returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
+  returnFrame = reduceDimensions(returnFrame, 40, 40);//shrink
   returnFrame = classifyCamera(returnFrame);//classified
   
   return returnFrame;
