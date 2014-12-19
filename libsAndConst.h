@@ -10,7 +10,7 @@ using namespace cv;
 //globals set in gloveTrack.cpp
 extern double iWidth;
 extern double iHeight;
-extern bool debugMode;
+extern int verbosity;
 extern std::vector<Mat> comparisonImages;
 
 extern int thresholdBrightness;

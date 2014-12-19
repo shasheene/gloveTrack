@@ -8,7 +8,7 @@ void mouseCallback(int event, int x, int y, int flags, void* userdata)
      {
 
        //std::cerr << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
-       if (debugMode==true) {
+       if (verbosity>0) {
 	 
 	 classificationColor[classificationArrayIndex] = 
 	   Scalar(

@@ -7,7 +7,7 @@ Mat captureFrame(VideoCapture device);//takes photo and returns it
 int numImagesTaken = 0;
 
 //Globals (declared extern'd in libsAndConst.h and defined mostly in main)
-bool debugMode;
+int verbosity;
 std::vector<Mat> comparisonImages;
 std::vector<Mat> testingImages;
 double iWidth, iHeight;
@@ -30,7 +30,7 @@ int videoCaptureDeviceNumber = 0;
 bool slowMode; //extra info above debug mode
 
 int main(int argc, char** argv){
-  debugMode=false;
+  verbosity=0;
   slowMode =false;
   parseCommandLineArgs(argc,argv);
   std::string trainingImagePath("db/blenderImg/");
@@ -50,15 +50,17 @@ int main(int argc, char** argv){
     blenderGloveColor[7] = Scalar(90, 106, 253, 0);//pink
 
     //manually picked from test0001.png camera image
-    classificationColor[0] = Scalar(0, 0, 0, 0);//black
-    classificationColor[1] = Scalar(34, 29, 180, 0);//red
-    classificationColor[2] = Scalar(9, 65, 2, 0);//green
-    classificationColor[3] = Scalar(99, 58, 35, 0);//dark blue
-    classificationColor[4] = Scalar(21, 138, 247, 0);//orange
-    classificationColor[5] = Scalar(154, 153, 67, 0);//light blue
-    classificationColor[6] = Scalar(137, 101, 171, 0);//purple
+    classificationColor[0] = Scalar(255, 255, 255, 0);//bkg
+    classificationColor[1] = Scalar(0, 0, 0, 0);//black
+    classificationColor[2] = Scalar(34, 29, 180, 0);//red
+    classificationColor[3] = Scalar(9, 65, 2, 0);//green
+    classificationColor[4] = Scalar(99, 58, 35, 0);//dark blue
+    classificationColor[5] = Scalar(21, 138, 247, 0);//orange
+    classificationColor[6] = Scalar(154, 153, 67, 0);//light blue
     classificationColor[7] = Scalar(90, 106, 253, 0);//pink
-  if (realTimeMode==false){
+    //classificationColor[8] = Scalar(137, 101, 171, 0);//purple
+
+    if (realTimeMode==false){
     //Size of reduced dimensionality image
     int databaseImageWidth = 50;
     int databaseImageHeight = 50;
@@ -67,12 +69,83 @@ int main(int argc, char** argv){
     loadImageDatabase(comparisonImages, trainingImagePath, 64); //wrong for testing
 
     loadCameraImageDatabase(testingImages, testingImagePath, 64);
-  
+
+    //Mat rawtrainingImages[5];
+    //Mat labelledtrainingImages[5];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
+
+    Mat input = imread("db/test/mini3.png",1);
+    Mat inputSamples = Mat::zeros( input.rows * input.cols, 3, CV_32FC1 );
+    convertToSampleArray(input, inputSamples);
+    
+    Mat inputLabelled = imread("db/test/mini3Labelled.png",1);
+    Mat inputLabelledSamples = Mat::zeros( inputLabelled.rows * inputLabelled.cols, 3, CV_32FC1 );
+    convertToSampleArray(inputLabelled, inputLabelledSamples);
+
+    int no_of_clusters = 8;
+    EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
+
+    int** resultToIndex; //Table to convert between EM returned values to classification colors.
+      resultToIndex = new int*;
+  try {
+    (*resultToIndex) = new int[no_of_clusters];
+  } catch (int e) {
+    std::cout << "An exception occurred (perhaps new operator failed). Exception Nr. " << e << '\n';
+  }
+  //Clear matrix
+  for (int i=0; i<no_of_clusters;i++){
+    (*resultToIndex)[i] = 0;
+  }
+
+
+  Mat initialProb = Mat::zeros(inputLabelledSamples.rows,no_of_clusters,CV_32FC1);//single channel matrix for trainM EM for probability  preset vals
+
+    //fills prob matrix with initial probability
+    convertLabelledToEMInitialTrainingProbabilityMatrix(inputLabelledSamples, initialProb,no_of_clusters);
+    //debug print probability array:
+    /*   std::cout << std::endl;
+       for (int i=0;i<inputLabelledSamples.rows;i++){
+	 for (int j=0;j<no_of_clusters;j++){//8 is number classification colors
+	   std::cout <<  initialProb.ptr<float>(i)[j] << " ";
+	 }
+	 std::cout <<  "\n";
+       }
+    */
+
+    std::cerr << "training EM" << std::endl;
+    trainExpectationMaximizationModel(inputSamples, initialProb, em,resultToIndex);
+std::cout << "running EM on query image" << std::endl;
+    //Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);//temp funciton signature
+
+
+    Mat sampleArray = Mat::zeros( input.rows * input.cols, 3, CV_32FC1 );
+    convertToSampleArray(input, sampleArray);
+    Mat outputArray = Mat::zeros(input.rows,input.cols,CV_8UC3);
+    classifyColors(input, sampleArray, outputArray, em, resultToIndex);
+    std::cout << "EM Classification Complete\n";
+    imshow("gloveTrack",outputArray);
+    waitKey(0);    
+    //vector<Mat> emSegment =  EMSegmentation(input, 8);
+      //std::cout << "EM Classification Complete\n";
+      //imshow("gloveTrack",normalizedImage);  
+
+
+    //waitKey(0);
+
+    //Mat newTest = imread("db/test/trainA.png",1);
+    //Mat emSegment2 =  EMSegmentation(newTest, prob, em, 8);
+    //imshow("gloveTrack",emSegment2);  
+    //waitKey(0);
+    std::cout << "Exiting\n";
+    exit(0);
+	    
+
+
+    
     for (int i=0;i<testingImages.size();i++){
       std::cerr << "Testing image number " << i << std::endl;
 
-      imshow("gloveTrack",testingImages.at(i));  
-      waitKey(0);
+      //imshow("gloveTrack",testingImages.at(i));  
+      //waitKey(0);
 
       //Output X nearest neighbors by weighted hamming distance, 
       std::vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
@@ -120,7 +193,7 @@ int main(int argc, char** argv){
       //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
 
       Mat currentFrame = frame;
-      Mat shrunkFrame = normalizeQueryImage(frame, thresholdBrightness);
+      Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
 
       
      if (slowMode == true){
@@ -141,7 +214,7 @@ int main(int argc, char** argv){
 	comparisonImages.at(indexOfMatch.at(0)).copyTo(frame(roi));
       }
     
-      if (debugMode==true){
+      if (verbosity>0){
 	drawCurrentClassificationColors(frame); 
       }
   
@@ -166,7 +239,7 @@ int main(int argc, char** argv){
 	std::cerr << "Threshold brightness now: " << thresholdBrightness << std::endl;
 	break;
       case 'q':
-	if (debugMode==true) {
+	if (verbosity>0) {
 	  //Backup unsaved comparison image files:
 	  saveDatabase(comparisonImages, initialImageDatabaseSize,  databaseImagePath);
 	  
@@ -181,7 +254,7 @@ int main(int argc, char** argv){
       
       imshow("gloveTrack",frame);
       t = ((double)getTickCount() - t)/getTickFrequency();
-      if(debugMode==true){std::cout << "Times passed in seconds: " << t << std::endl;}
+      if(verbosity>2){std::cout << "Times passed in seconds: " << t << std::endl;}
     }
   }
   return (0);
@@ -244,7 +317,7 @@ void parseCommandLineArgs(int argc, char** argv) { //getopt
         break;
       case 'd':
 	std::cout << "Debug mode enabled" << std::endl;
-	debugMode=true;
+	verbosity=1;//make this take debug level later
         break;
       case 'n':
 	std::cout << "Nearest neighbor test mode(Realtime disabled)" << std::endl;
