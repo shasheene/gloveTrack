@@ -4,14 +4,15 @@
 #include "libsAndConst.h"
 
 //Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
-Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,int** resultToIndexTable);
+Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,int (&resultToIndex)[NUMGLOVECOLORS]);
 
 /**
 Perform segmentation (clustering) using EM algorithm
 **/
-void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray, EM& em, int** resultToIndexTable);
+void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray, EM& em, int (&resultToIndex)[NUMGLOVECOLORS]);
 
-bool trainExpectationMaximizationModel(Mat trainSampleArray, Mat initialTrainingProbability, EM& em, int** resultToIndexTable);
+//Pass in array of training images (currently not array though)
+bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrainingImages[], int numTrainingImages,EM& em, int (&resultToIndex)[NUMGLOVECOLORS]);
 
 //Compares each pixel of prelabelledSampleArray to classificationColor array and trains a classifier  normal ("g (Guassian Mixture Model)
 void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleArray, Mat& prob, int numClustersInEM);

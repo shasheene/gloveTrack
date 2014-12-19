@@ -58,7 +58,7 @@ int main(int argc, char** argv){
     classificationColor[5] = Scalar(21, 138, 247, 0);//orange
     classificationColor[6] = Scalar(154, 153, 67, 0);//light blue
     classificationColor[7] = Scalar(90, 106, 253, 0);//pink
-    //classificationColor[8] = Scalar(137, 101, 171, 0);//purple
+    classificationColor[8] = Scalar(137, 101, 171, 0);//purple
 
     if (realTimeMode==false){
     //Size of reduced dimensionality image
@@ -66,70 +66,32 @@ int main(int argc, char** argv){
     int databaseImageHeight = 50;
 
     //Load image database
-    loadImageDatabase(comparisonImages, trainingImagePath, 64); //wrong for testing
+    //loadImageDatabase(comparisonImages, trainingImagePath, 64); //wrong for testing
+    //loadCameraImageDatabase(testingImages, testingImagePath, 64);
 
-    loadCameraImageDatabase(testingImages, testingImagePath, 64);
-
-    //Mat rawtrainingImages[5];
-    //Mat labelledtrainingImages[5];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
-
-    Mat input = imread("db/test/mini3.png",1);
-    Mat inputSamples = Mat::zeros( input.rows * input.cols, 3, CV_32FC1 );
-    convertToSampleArray(input, inputSamples);
-    
-    Mat inputLabelled = imread("db/test/mini3Labelled.png",1);
-    Mat inputLabelledSamples = Mat::zeros( inputLabelled.rows * inputLabelled.cols, 3, CV_32FC1 );
-    convertToSampleArray(inputLabelled, inputLabelledSamples);
-
-    int no_of_clusters = 8;
+    int no_of_clusters = NUMGLOVECOLORS;
     EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
+    int resultToIndex[NUMGLOVECOLORS];//initialized in training function
 
-    int** resultToIndex; //Table to convert between EM returned values to classification colors.
-      resultToIndex = new int*;
-  try {
-    (*resultToIndex) = new int[no_of_clusters];
-  } catch (int e) {
-    std::cout << "An exception occurred (perhaps new operator failed). Exception Nr. " << e << '\n';
-  }
-  //Clear matrix
-  for (int i=0; i<no_of_clusters;i++){
-    (*resultToIndex)[i] = 0;
-  }
+    std::cout << "Loading expectation maximization training set" << std::endl;
+    Mat rawTrainingImages[2];
+    Mat labelledTrainingImages[2];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
+    rawTrainingImages[0] = imread("db/test/miniB.png",1);
+    labelledTrainingImages[0] = imread("db/test/miniBLabelled.png",1);
+    rawTrainingImages[1] = imread("db/test/miniC.png",1);
+    labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
-  Mat initialProb = Mat::zeros(inputLabelledSamples.rows,no_of_clusters,CV_32FC1);//single channel matrix for trainM EM for probability  preset vals
+    std::cout << "Training expectation maximization model" << std::endl;
+    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,2, em, resultToIndex); //Magic 2, the number of training images. fix
 
-    //fills prob matrix with initial probability
-    convertLabelledToEMInitialTrainingProbabilityMatrix(inputLabelledSamples, initialProb,no_of_clusters);
-    //debug print probability array:
-    /*   std::cout << std::endl;
-       for (int i=0;i<inputLabelledSamples.rows;i++){
-	 for (int j=0;j<no_of_clusters;j++){//8 is number classification colors
-	   std::cout <<  initialProb.ptr<float>(i)[j] << " ";
-	 }
-	 std::cout <<  "\n";
-       }
-    */
-
-    std::cerr << "training EM" << std::endl;
-    trainExpectationMaximizationModel(inputSamples, initialProb, em,resultToIndex);
-std::cout << "running EM on query image" << std::endl;
-    //Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);//temp funciton signature
-
-
-    Mat sampleArray = Mat::zeros( input.rows * input.cols, 3, CV_32FC1 );
-    convertToSampleArray(input, sampleArray);
-    Mat outputArray = Mat::zeros(input.rows,input.cols,CV_8UC3);
-    classifyColors(input, sampleArray, outputArray, em, resultToIndex);
-    std::cout << "EM Classification Complete\n";
-    imshow("gloveTrack",outputArray);
+    Mat input = rawTrainingImages[0];
+    std::cout << "running EM on query image" << std::endl;
+    Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
+    imshow("gloveTrack",normalizedImage);
     waitKey(0);    
     //vector<Mat> emSegment =  EMSegmentation(input, 8);
-      //std::cout << "EM Classification Complete\n";
-      //imshow("gloveTrack",normalizedImage);  
 
-
-    //waitKey(0);
 
     //Mat newTest = imread("db/test/trainA.png",1);
     //Mat emSegment2 =  EMSegmentation(newTest, prob, em, 8);

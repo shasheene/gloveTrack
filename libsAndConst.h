@@ -18,7 +18,7 @@ extern int thresholdBrightness;
 extern Mat frame; // Entire camera frame
 
 
-#define NUMGLOVECOLORS 7 //7 unique colors, and index 0 being temp backgound removal
+#define NUMGLOVECOLORS 8 //7 unique colors, and index 0 being temp backgound removal
 extern Scalar classificationColor[];//camera image classification buckets
 extern Scalar blenderGloveColor[];//color buckets of rendered blender glove images (same indexing as above)
 extern int classificationArrayIndex; //Used for calibration mode mouse.cpp events

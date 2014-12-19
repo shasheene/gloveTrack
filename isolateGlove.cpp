@@ -1,26 +1,146 @@
 #include "isolateGlove.h"
 
-
-Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int** resultToIndex) {
-  //Mat frame = unprocessedCameraFrame;
+Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&resultToIndex)[NUMGLOVECOLORS]) {
+  Mat frame = unprocessedCameraFrame;
   //Shrink image because 2000x2000 from phone camera is far to big
-  //frame = fastReduceDimensions(frame, 500, 500);//shrink
+  //frame = fastReduceDimensions(frame, 500, 500);//shrink to speedup other algorithm
 
   //CV EM requires array of "samples" (each sample is a pixel RGB value)
-  Mat sampleArray = Mat::zeros( unprocessedCameraFrame.rows * unprocessedCameraFrame.cols, 3, CV_32FC1 );
-  convertToSampleArray(unprocessedCameraFrame, sampleArray);
-  
-  //Bilateral filter to smooth sensor noise (blur)
-  //
+  if (verbosity>0)
+    std::cout << "\"Flattening\" input image into array of samples (pixels) for further processing \n";
+  Mat sampleArray = Mat::zeros( frame.rows * frame.cols, 3, CV_32FC1 );
+  convertToSampleArray(frame, sampleArray);
 
-  //Empty probability matrix for EM
-  Mat prob = Mat::zeros(unprocessedCameraFrame.rows*unprocessedCameraFrame.cols,8,CV_32FC1);//single channel matrix for trainM EM for probability  preset vals
-    //We will have a frame size from meanshift
+  
+  //if (verbosity>0)
+  //std::cout << "Bilateral filter to smooth sensor noise (by slight image bluring)\n";
+  
+  //if (verbosity>0)
+  //std::cout << "Cropping image using several interations of meanshift clustering algorithm\n";
+
+  if (verbosity>0)
+    std::cout << "Expectation Maximization prediction on every pixel to classify the colors as either background or one of the glove colors\n";
+
+  Mat returnFrame = Mat::zeros(frame.rows,frame.cols,CV_8UC3);
+  classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
+  std::cout << "EM Classification Complete\n";
+
+  return(returnFrame);
+}
+
+void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray ,EM& em, int (&resultToIndex)[NUMGLOVECOLORS]){
+  if (em.isTrained()==false){
+      std::cerr << "EM model not trained. Exiting!\n" << std::endl;
+      exit(1);
+  }
+  
+  int index = 0;
+    for( int y = 0; y < testImage.rows; y++ ) {
+        for( int x = 0; x < testImage.cols*3; x=x+3) {
+            int result = em.predict(testImageSampleArray.row(index))[1];
+	    index++;
+            //testImage[result].at<Point3i>(y, x, 0) = testImageSampleArray.at<Point3i>(y, x, 0);
+	    /*	    testImage.ptr<uchar>(y)[x] = classificationColor[result][0];
+	    testImage.ptr<uchar>(y)[x+1] = classificationColor[result][1];
+	    testImage.ptr<uchar>(y)[x+2] = classificationColor[result][2];*/
+
+	    
+
+	    /*std::cerr << "result is: " << result << " ";
+	      std::cerr << "classificaiton: " << resultToIndex[result] << " ";
+	      std::cerr << "" << classificationColor[resultToIndex[result]] << std::endl;
+	      std::cerr << "" << (int)testImage.ptr<uchar>(y)[x] << "," << (int)testImage.ptr<uchar>(y)[x+1] << "," << (int)testImage.ptr<uchar>(y)[x+2] << "\n";*/
+
+	    outputArray.ptr<uchar>(y)[x] = classificationColor[resultToIndex[result]][0];
+	    outputArray.ptr<uchar>(y)[x+1] = classificationColor[resultToIndex[result]][1];
+	    outputArray.ptr<uchar>(y)[x+2] = classificationColor[resultToIndex[result]][2];
+        }
+    }
+}
+
+bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrainingImages[], int numTrainingImages ,EM& em, int (&resultToIndex)[NUMGLOVECOLORS]) {
+  int no_of_clusters = em.get<int>("nclusters");
+
+  //if (verbosity>1)
+  std::cout << "Flattening set of trainingImages and labelledTraining Images into two giant sample arrays";
+  //Figure out how big giant sample vector should be:
+  int numSamples=0;
+  for (int i=0;i<numTrainingImages;i++){
+    numSamples+=(rawTrainingImages[i].cols*rawTrainingImages[i].rows);
     
-  //    Mat classifiedImage = classifyColors(unprocessedCameraFrame, sampleArray, prob, trainedEM, resultToIndex);
-  //meanshift
-  //
-    return(prob);
+  }
+//if (verbosity>1)
+  std::cout << " of length " << numSamples << " \n";
+
+  //Fill vector of samples with training images
+  Mat samples = Mat::zeros( numSamples, 3, CV_32FC1 );
+  Mat labelledSamples = Mat::zeros( numSamples, 3, CV_32FC1 );
+  int samplesOffset = 0;
+  for (int i=0;i<numTrainingImages;i++){
+    Mat tempSamples = Mat::zeros(rawTrainingImages[0].rows*rawTrainingImages[0].cols, 3, CV_32FC1 );
+    Mat tempLabelledSamples = Mat::zeros( rawTrainingImages[0].rows*rawTrainingImages[0].cols, 3, CV_32FC1 );
+    convertToSampleArray(rawTrainingImages[i],tempSamples);
+    convertToSampleArray(labelledTrainingImages[i],tempLabelledSamples);
+    //Append tempSamples and tempLabelled into samples and labelledSamples respectively
+    for (int j=0;j<tempSamples.rows;j++){
+      tempSamples.row(j).copyTo(samples.row(j+samplesOffset));
+      tempLabelledSamples.row(j).copyTo(labelledSamples.row(j+samplesOffset));
+    }
+    samplesOffset+=tempSamples.rows;//increment offset
+  }
+
+  /*    convertToSampleArray(rawTrainingImages, rawTrainingImagesSamples);
+    Mat labelledTrainingImagesSamples = Mat::zeros( labelledTrainingImages.rows * labelledTrainingImages.cols, 3, CV_32FC1 );
+    convertToSampleArray(labelledTrainingImages, labelledTrainingImagesSamples);
+  */
+
+    Mat initialProb = Mat::zeros(labelledSamples.rows,no_of_clusters,CV_32FC1);//single channel matrix for trainM EM for probability  preset vals
+
+    //fills prob matrix with initial probability
+    convertLabelledToEMInitialTrainingProbabilityMatrix(labelledSamples, initialProb,no_of_clusters);
+    //debug print probability array:
+    /*   std::cout << std::endl;
+       for (int i=0;i<labelledSamples.rows;i++){
+	 for (int j=0;j<no_of_clusters;j++){//8 is number classification colors
+	   std::cout <<  initialProb.ptr<float>(i)[j] << " ";
+	 }
+	 std::cout <<  "\n";
+       }
+    */
+
+      if (em.isTrained()==true){
+      std::cerr << "EM model already trained. Exiting!\n" << std::endl;
+      exit(1);
+      }
+
+  std::cout << "Starting EM training" << std::endl;
+  //Important: trained with raw images, but probability generated from labelled images
+  bool trainOutcome = em.trainM(samples, initialProb);
+
+  //Initialize array to 0 (incase test cases don't cover all colors or labelled incorrectly etc) 
+  for (int i=0;i<no_of_clusters;i++){
+    resultToIndex[i] = 0;
+  }
+  
+  //Maps classificationColor array to EM result number:
+  for (int i=0;i<no_of_clusters;i++){
+    Mat testPixel = Mat(1,1,CV_8UC3);
+    testPixel.ptr<uchar>(0)[0] = (int)classificationColor[i][0];
+    testPixel.ptr<uchar>(0)[1] = (int)classificationColor[i][1];
+    testPixel.ptr<uchar>(0)[2] = (int)classificationColor[i][2];
+    Mat testPixelVector = Mat::zeros( testPixel.rows * testPixel.cols, 3, CV_32FC1 );
+    convertToSampleArray(testPixel, testPixelVector);
+    std::cout << "resultToIndex stuff: " << i << std::endl;
+    int result = em.predict(testPixelVector.row(0))[1];
+    resultToIndex[result] = i;
+    std::cout << "After resultToIndex stuff: " << i << std::endl;
+    }
+  for (int i=0;i<no_of_clusters;i++){
+    std::cout << "resultToIndex " << i << " is " << resultToIndex[i] << std::endl;
+  }
+  std::cout << "After all resultToIndex stuff: "<< std::endl;
+  return (trainOutcome);
+  
 }
 
 void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleArray, Mat& prob, int numClustersInEM){
@@ -50,89 +170,6 @@ void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleAr
 	 }*/
 }
 
-  
-
-
-bool trainExpectationMaximizationModel(Mat trainSampleArray, Mat initialTrainingProbability, EM& em, int** resultToIndex){
-  int no_of_clusters = em.get<int>("nclusters");
-
-
-  /*
-  Mat samples = 
-
-  //Figure out how big giant sample vector should be:
-  int numSamples;
-  for (int i=0;i<sizeof(trainSampleArray)/sizeof(trainSampleArray[0]);i++){
-    numSamples+=trainSampleArray[i].cols + trainSampleArray[i].rows;
-  }
-
-  //Fill vector of samples with training images
-  Mat samples[numSamples];
-x  Mat labelledSamples[numSamples];
-  for (int i=0;i<sizeof(trainSampleArray)/sizeof(trainSampleArray[0]);i++){
-    convertToSampleVector(trainSampleArray[i],samples+i);
-    convertToSampleVector(trainLabelled[i],labelledSamples+i);
-  }
-  */
- 
-  if (em.isTrained()==true){
-      std::cerr << "EM model already trained. Exiting!\n" << std::endl;
-      exit(1);
-  }
-
-  std::cout << "Starting EM training" << std::endl;
-  bool trainOutcome = em.trainM(trainSampleArray, initialTrainingProbability);
-
-    //Maps classificationColor array to EM result number:
-    for (int i=0;i<no_of_clusters;i++){
-      Mat testPixel = Mat(1,1,CV_8UC3);
-      testPixel.ptr<uchar>(0)[0] = (int)classificationColor[i][0];
-      testPixel.ptr<uchar>(0)[1] = (int)classificationColor[i][1];
-      testPixel.ptr<uchar>(0)[2] = (int)classificationColor[i][2];
-      Mat testPixelVector = Mat::zeros( testPixel.rows * testPixel.cols, 3, CV_32FC1 );
-      convertToSampleArray(testPixel, testPixelVector);
-      std::cout << "resultToIndex stuff: " << i << std::endl;
-      int result = em.predict(testPixelVector.row(0))[1];
-      (*resultToIndex)[result] = i;
-      std::cout << "After resultToIndex stuff: " << i << std::endl;
-    }
-    for (int i=0;i<no_of_clusters;i++){
-      std::cout << "resultToIndex " << i << " is " << (*resultToIndex)[i] << std::endl;
-    }
-    std::cout << "After all resultToIndex stuff: "<< std::endl;
-  return (trainOutcome);
-}
-
-void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray ,EM& em, int** resultToIndex){
-  if (em.isTrained()==false){
-      std::cerr << "EM model not trained. Exiting!\n" << std::endl;
-      exit(1);
-  }
-  
-  int index = 0;
-    for( int y = 0; y < testImage.rows; y++ ) {
-        for( int x = 0; x < testImage.cols*3; x=x+3) {
-            int result = em.predict(testImageSampleArray.row(index))[1];
-	    index++;
-            //testImage[result].at<Point3i>(y, x, 0) = testImageSampleArray.at<Point3i>(y, x, 0);
-	    /*	    testImage.ptr<uchar>(y)[x] = classificationColor[result][0];
-	    testImage.ptr<uchar>(y)[x+1] = classificationColor[result][1];
-	    testImage.ptr<uchar>(y)[x+2] = classificationColor[result][2];*/
-
-	    
-
-	    /*std::cerr << "result is: " << result << " ";
-	      std::cerr << "classificaiton: " << (*resultToIndex)[result] << " ";
-	      std::cerr << "" << classificationColor[(*resultToIndex)[result]] << std::endl;
-	      std::cerr << "" << (int)testImage.ptr<uchar>(y)[x] << "," << (int)testImage.ptr<uchar>(y)[x+1] << "," << (int)testImage.ptr<uchar>(y)[x+2] << "\n";*/
-
-	    outputArray.ptr<uchar>(y)[x] = classificationColor[(*resultToIndex)[result]][0];
-	    outputArray.ptr<uchar>(y)[x+1] = classificationColor[(*resultToIndex)[result]][1];
-	    outputArray.ptr<uchar>(y)[x+2] = classificationColor[(*resultToIndex)[result]][2];
-        }
-    }
-}
-
 //Rasterize/Convert 2D BGR image matrix (MxN size) to a 1 dimension "sample vector" matrix, where each is a BGR pixel (so, 1x(MxN) size). This is the required format for OpenCV algorithms
 Mat convertToSampleArray(Mat frame, Mat& outputSampleArray) {
   std::cout << "Started conversion" << std::endl;
@@ -147,11 +184,11 @@ Mat convertToSampleArray(Mat frame, Mat& outputSampleArray) {
   }
 
   std::cout << "Ended flattening" << std::endl;
-  //  if (verbosity >2) {
+  if (verbosity >2) {
     for (int i=0;i<frame.rows*frame.cols;i++){
       std::cout <<  outputSampleArray.at<Vec3f>(i) << "\n";
     }
-    // }
+  }
   return outputSampleArray;
 }
  
