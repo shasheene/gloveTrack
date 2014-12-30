@@ -13,7 +13,12 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
 
   
   //if (verbosity>0)
-  //std::cout << "Bilateral filter to smooth sensor noise (by slight image bluring)\n";
+  std::cout << "Bilateral filter to smooth sensor noise (by slight image bluring)\n";
+  Mat filtered = Mat::zeros( frame.rows, frame.cols,CV_8UC3 );
+  std::cout << "bilateral filter complete. \n";
+  bilateralFilter(unprocessedCameraFrame, filtered, 9, 150,150);//filtersize, sigma color
+  frame = filtered;
+  
   
   //if (verbosity>0)
   //std::cout << "Cropping image using several interations of meanshift clustering algorithm\n";
@@ -24,7 +29,7 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   Mat returnFrame = Mat::zeros(frame.rows,frame.cols,CV_8UC3);
   classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
   std::cout << "EM Classification Complete\n";
-
+  //returnFrame = fastReduceDimensions(returnFrame, 40, 40);//shrink
   return(returnFrame);
 }
 

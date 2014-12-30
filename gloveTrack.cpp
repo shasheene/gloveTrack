@@ -74,31 +74,23 @@ int main(int argc, char** argv){
     int resultToIndex[NUMGLOVECOLORS];//initialized in training function
 
     std::cout << "Loading expectation maximization training set" << std::endl;
-    Mat rawTrainingImages[2];
-    Mat labelledTrainingImages[2];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
+    Mat rawTrainingImages[1];
+    Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
     rawTrainingImages[0] = imread("db/test/miniB.png",1);
     labelledTrainingImages[0] = imread("db/test/miniBLabelled.png",1);
-    rawTrainingImages[1] = imread("db/test/miniC.png",1);
-    labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
+    //rawTrainingImages[1] = imread("db/test/miniC.png",1);
+    //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
     std::cout << "Training expectation maximization model" << std::endl;
-    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,2, em, resultToIndex); //Magic 2, the number of training images. fix
+    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
 
     Mat input = rawTrainingImages[0];
     std::cout << "running EM on query image" << std::endl;
     Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
     imshow("gloveTrack",normalizedImage);
     waitKey(0);    
-    //vector<Mat> emSegment =  EMSegmentation(input, 8);
-
-
-    //Mat newTest = imread("db/test/trainA.png",1);
-    //Mat emSegment2 =  EMSegmentation(newTest, prob, em, 8);
-    //imshow("gloveTrack",emSegment2);  
-    //waitKey(0);
-    std::cout << "Exiting\n";
-    exit(0);
+    exit(1);
 	    
 
 
