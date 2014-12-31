@@ -19,7 +19,6 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   bilateralFilter(unprocessedCameraFrame, filtered, 9, 150,150);//filtersize, sigma color
   frame = filtered;
   
-  
   //if (verbosity>0)
   //std::cout << "Cropping image using several interations of meanshift clustering algorithm\n";
 
@@ -126,20 +125,21 @@ bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrai
   for (int i=0;i<no_of_clusters;i++){
     resultToIndex[i] = 0;
   }
-  
+  std::cout << " Creating 'resultsToIndex' mapping between EM and classificationColor calibration" << std::endl;
   //Maps classificationColor array to EM result number:
   for (int i=0;i<no_of_clusters;i++){
     Mat testPixel = Mat(1,1,CV_8UC3);
     testPixel.ptr<uchar>(0)[0] = (int)classificationColor[i][0];
     testPixel.ptr<uchar>(0)[1] = (int)classificationColor[i][1];
     testPixel.ptr<uchar>(0)[2] = (int)classificationColor[i][2];
-    Mat testPixelVector = Mat::zeros( testPixel.rows * testPixel.cols, 3, CV_32FC1 );
+    Mat testPixelVector = Mat::zeros(testPixel.cols, 3, CV_32FC1 );
     convertToSampleArray(testPixel, testPixelVector);
-    std::cout << "resultToIndex stuff: " << i << std::endl;
+    std::cout << "resultToIndex on classifcationColor #" << i << std::endl;
     int result = em.predict(testPixelVector.row(0))[1];
     resultToIndex[result] = i;
-    std::cout << "After resultToIndex stuff: " << i << std::endl;
+    std::cout << "Result for classificationColor #" << i << " was " << result << std::endl;
     }
+
   for (int i=0;i<no_of_clusters;i++){
     std::cout << "resultToIndex " << i << " is " << resultToIndex[i] << std::endl;
   }
@@ -154,25 +154,27 @@ void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleAr
       bool labelledPixel = false;
       for (int j=0;j<numClustersInEM;j++){
 	//std::cerr << "here " << i << "," << j << std::endl;
-	if ((prelabelledSampleArray.ptr<float>(i)[0] == classificationColor[j][0]) && (prelabelledSampleArray.ptr<float>(i)[1] == classificationColor[j][1]) && (prelabelledSampleArray.ptr<float>(i)[2] == classificationColor[j][2])){
-	    prob.ptr<float>(i)[j]= 1;
-	    labelledPixel=true;
-	  }
+	if ((prelabelledSampleArray.ptr<float>(i)[0] == classificationColor[j][0])
+	    && (prelabelledSampleArray.ptr<float>(i)[1] == classificationColor[j][1])
+	    && (prelabelledSampleArray.ptr<float>(i)[2] == classificationColor[j][2])){
+	  prob.ptr<float>(i)[j]= 1;
+	  labelledPixel=true;
 	}
-	if (labelledPixel==false) {//if pixel not labelled as calibrated classification color, consider pixel as background color
-	  prob.ptr<float>(0)[0]= 1;
-	}
-    }
-    std::cout << std::endl;
-    /*
-    // debug print:
-       std::cout << std::endl;
-       for (int i=0;i<prelabelledSampleArray.rows;i++){
-	 for (int j=0;j<numClustersInEM;j++){//8 is number classification colors
-	   std::cout <<  prob.ptr<float>(i)[j] << " ";
-	 }
-	 std::cout <<  "\n";
-	 }*/
+      }
+      if (labelledPixel==false) {//if pixel not labelled as calibrated classification color, consider pixel as background color
+	prob.ptr<float>(0)[0]= 1;
+      }
+      }
+      std::cout << std::endl;
+      /*
+      // debug print:
+      std::cout << std::endl;
+      for (int i=0;i<prelabelledSampleArray.rows;i++){
+      for (int j=0;j<numClustersInEM;j++){//8 is number classification colors
+      std::cout <<  prob.ptr<float>(i)[j] << " ";
+      }
+      std::cout <<  "\n";
+      }*/
 }
 
 //Rasterize/Convert 2D BGR image matrix (MxN size) to a 1 dimension "sample vector" matrix, where each is a BGR pixel (so, 1x(MxN) size). This is the required format for OpenCV algorithms

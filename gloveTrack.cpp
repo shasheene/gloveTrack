@@ -48,9 +48,20 @@ int main(int argc, char** argv){
     blenderGloveColor[5] = Scalar(154, 153, 67, 0);//light blue
     blenderGloveColor[6] = Scalar(137, 101, 171, 0);//purple
     blenderGloveColor[7] = Scalar(90, 106, 253, 0);//pink
-
-    //manually picked from test0001.png camera image
-    classificationColor[0] = Scalar(255, 255, 255, 0);//bkg
+    
+    //Current glove colors - manually picked from test1.jpg camera image
+    classificationColor[0] = Scalar(0, 0, 0, 0);//bkg
+    classificationColor[1] = Scalar(119, 166, 194, 0);//white
+    classificationColor[2] = Scalar(22, 29, 203, 0);//red
+    classificationColor[3] = Scalar(32, 155, 169, 0);//green
+    classificationColor[4] = Scalar(86, 39, 41, 0);//dark blue
+    classificationColor[5] = Scalar(14, 95, 206, 0);//orange
+    classificationColor[6] = Scalar(129, 151, 102, 0);//light blue
+    classificationColor[7] = Scalar(94, 121, 208, 0);//pink
+    classificationColor[8] = Scalar(88, 52, 94, 0);//purple
+    
+    //First glove colors - manually picked from test0001.png camera image
+    /*  classificationColor[0] = Scalar(255, 255, 255, 0);//bkg
     classificationColor[1] = Scalar(0, 0, 0, 0);//black
     classificationColor[2] = Scalar(34, 29, 180, 0);//red
     classificationColor[3] = Scalar(9, 65, 2, 0);//green
@@ -59,7 +70,7 @@ int main(int argc, char** argv){
     classificationColor[6] = Scalar(154, 153, 67, 0);//light blue
     classificationColor[7] = Scalar(90, 106, 253, 0);//pink
     classificationColor[8] = Scalar(137, 101, 171, 0);//purple
-
+*/
     if (realTimeMode==false){
     //Size of reduced dimensionality image
     int databaseImageWidth = 50;
@@ -77,20 +88,29 @@ int main(int argc, char** argv){
     Mat rawTrainingImages[1];
     Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
-    rawTrainingImages[0] = imread("db/test/miniB.png",1);
-    labelledTrainingImages[0] = imread("db/test/miniBLabelled.png",1);
+    rawTrainingImages[0] = imread("db/newGlove/trainSmall1.png",1);
+    labelledTrainingImages[0] = imread("db/newGlove/trainLabelledSmall1.png",1);
     //rawTrainingImages[1] = imread("db/test/miniC.png",1);
     //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
     std::cout << "Training expectation maximization model" << std::endl;
     trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
 
-    Mat input = rawTrainingImages[0];
-    std::cout << "running EM on query image" << std::endl;
-    Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
-    imshow("gloveTrack",normalizedImage);
-    waitKey(0);    
-    exit(1);
+
+    Mat testImages[3];
+    //testImages[0] = imread("db/newGlove/testSmall1.png",1);
+    //testImages[0] = imread("db/newGlove/testSmall2.png",1);
+    testImages[0] = imread("db/newGlove/testSmall3.png",1);
+    testImages[3] = imread("db/newGlove/testSmall4.png",1);
+    
+    for (int i=0;i<4;i++) {
+      Mat input = testImages[i];
+      std::cout << "running EM on query image " << i << std::endl;
+      Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
+      imshow("gloveTrack",normalizedImage);
+      waitKey(0);
+    }
+
 	    
 
 
