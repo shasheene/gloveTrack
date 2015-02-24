@@ -36,5 +36,5 @@ Rect fastLocateGlove(Mat region, int darkThreshold);
 
 
 //Scales image down for faster lookup. Currenly just throw away pixels
-Mat fastReduceDimensions(Mat region, int x, int y);
+Mat fastReduceDimensions(Mat region, int percentScaling);
 #endif

@@ -88,23 +88,26 @@ int main(int argc, char** argv){
     Mat rawTrainingImages[1];
     Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
-    rawTrainingImages[0] = imread("db/newGlove/trainSmall1.png",1);
-    labelledTrainingImages[0] = imread("db/newGlove/trainLabelledSmall1.png",1);
+    int percentScaling = 10;
+      
+    rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmall1.png",1), percentScaling);
+    
+    labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainLabelledSmall1.png",1),percentScaling);
     //rawTrainingImages[1] = imread("db/test/miniC.png",1);
     //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
     std::cout << "Training expectation maximization model" << std::endl;
     trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
 
-
-    Mat testImages[3];
-    //testImages[0] = imread("db/newGlove/testSmall1.png",1);
-    //testImages[0] = imread("db/newGlove/testSmall2.png",1);
-    testImages[0] = imread("db/newGlove/testSmall3.png",1);
-    testImages[3] = imread("db/newGlove/testSmall4.png",1);
     
+      Mat testImages[3];
+      testImages[0] = imread("db/newGlove/testSmall1.png",1);
+      testImages[1] = imread("db/newGlove/testSmall2.png",1);
+      testImages[2] = imread("db/newGlove/testSmall3.png",1);
+      testImages[3] = imread("db/newGlove/testSmall4.png",1);
+      
     for (int i=0;i<4;i++) {
-      Mat input = testImages[i];
+      Mat input = fastReduceDimensions(testImages[i],50);
       std::cout << "running EM on query image " << i << std::endl;
       Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
       imshow("gloveTrack",normalizedImage);

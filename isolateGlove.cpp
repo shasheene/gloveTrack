@@ -117,7 +117,7 @@ bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrai
       exit(1);
       }
 
-  std::cout << "Starting EM training" << std::endl;
+  std::cout << "Starting EM training. This may take many minutes." << std::endl;
   //Important: trained with raw images, but probability generated from labelled images
   bool trainOutcome = em.trainM(samples, initialProb);
 
@@ -205,7 +205,7 @@ Mat fastNormalizeQueryImage(Mat unprocessedCameraFrame, int thresholdBrightness)
   //rectangle(unprocessedCameraFrame, gloveBoundingBox, Scalar(0,0,0)); //Draw rectangle represententing tracked location
   
   Mat returnFrame = unprocessedCameraFrame(gloveBoundingBox).clone();//CROP
-  returnFrame = fastReduceDimensions(returnFrame, 40, 40);//shrink
+  returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
   returnFrame = fastClassifyColors(returnFrame);//classified
   
   return returnFrame;
@@ -217,7 +217,7 @@ Mat tempNormalizeCamera(Mat unprocessedCameraFrame, int thresholdBrightness) {
   //rectangle(unprocessedCameraFrame, gloveBoundingBox, Scalar(0,0,0)); //Draw rectangle represententing tracked location
   
   Mat returnFrame = unprocessedCameraFrame(gloveBoundingBox).clone();//CROP
-  returnFrame = fastReduceDimensions(returnFrame, 40, 40);//shrink
+  returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
   returnFrame = classifyCamera(returnFrame);//classified
   
   return returnFrame;
@@ -280,12 +280,14 @@ Rect fastLocateGlove(Mat region, int darkThreshold) {
 }
 
 //If in future may be worth it to merge this with cleanupImage so only a single cycle over fullsize image. But current is better for code clarity
-Mat fastReduceDimensions(Mat region, int targetWidth, int targetHeight) {
-  int columnSkip = region.cols / targetWidth; 
-  int rowSkip = region.rows / targetHeight;
-
+Mat fastReduceDimensions(Mat region, int percentScaling) {
+  int targetHeight = (region.rows * percentScaling)/100;
+  int targetWidth = (region.cols * percentScaling)/100; 
+  int rowSkip = region.rows/targetHeight;
+  int columnSkip = region.cols/targetWidth;
+    
   //Create new Mat large enough to hold glove image
-  Mat shrunkFrame = Mat(targetWidth, targetHeight, CV_8UC3, Scalar(0,0,0));
+  Mat shrunkFrame = Mat(targetHeight, targetWidth, CV_8UC3, Scalar(0,0,0));
 
   //Shrink image by merging adjacent pixels in square
   for (int i=0;i< shrunkFrame.rows; ++i){
