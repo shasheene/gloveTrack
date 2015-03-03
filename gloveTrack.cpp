@@ -85,23 +85,28 @@ int main(int argc, char** argv){
     int resultToIndex[NUMGLOVECOLORS];//initialized in training function
 
     std::cout << "Loading expectation maximization training set" << std::endl;
-    Mat rawTrainingImages[1];
-    Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
+    Mat rawTrainingImages[2];
+    Mat labelledTrainingImages[2];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
     int percentScaling = 10;
       
-    rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmall1.png",1), percentScaling);
+    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmall1.png",1), percentScaling);
+    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainLabelledSmall1.png",1),percentScaling);
+    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1), percentScaling);
+    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1),percentScaling);
+    rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallX.png",1), percentScaling);
+    labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallXLabelled.png",1),percentScaling);
+
     
-    labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainLabelledSmall1.png",1),percentScaling);
     //rawTrainingImages[1] = imread("db/test/miniC.png",1);
     //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
     std::cout << "Training expectation maximization model" << std::endl;
     trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
 
-    
       Mat testImages[3];
-      testImages[0] = imread("db/newGlove/testSmall1.png",1);
+      testImages[0] = imread("db/newGlove/t1.png",1);
+      //testImages[0] = imread("db/newGlove/testSmall1.png",1);
       testImages[1] = imread("db/newGlove/testSmall2.png",1);
       testImages[2] = imread("db/newGlove/testSmall3.png",1);
       testImages[3] = imread("db/newGlove/testSmall4.png",1);
@@ -114,10 +119,6 @@ int main(int argc, char** argv){
       waitKey(0);
     }
 
-	    
-
-
-    
     for (int i=0;i<testingImages.size();i++){
       std::cerr << "Testing image number " << i << std::endl;
 
@@ -145,7 +146,32 @@ int main(int argc, char** argv){
       std::cerr << " Unable to open video capture device " << videoCaptureDeviceNumber << " too. Quitting" << std::endl;
       exit(1);
     }
-  
+
+
+    int no_of_clusters = NUMGLOVECOLORS;
+    EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
+    int resultToIndex[NUMGLOVECOLORS];//initialized in training function
+
+    std::cout << "Loading expectation maximization training set" << std::endl;
+    Mat rawTrainingImages[2];
+    Mat labelledTrainingImages[2];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
+
+    int percentScaling = 10;
+      
+    rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmall1.png",1), percentScaling);
+    labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainLabelledSmall1.png",1),percentScaling);
+    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1), percentScaling);
+    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1),percentScaling);
+    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallX.png",1), percentScaling);
+    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallXLabelled.png",1),percentScaling);
+
+    
+    //rawTrainingImages[1] = imread("db/test/miniC.png",1);
+    //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
+
+    std::cout << "Training expectation maximization model" << std::endl;
+    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
+
     iWidth = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
     iHeight = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
   
@@ -169,9 +195,11 @@ int main(int argc, char** argv){
       //Mat backgroundRemovalFrame = backgroundFrame(gloveBoundingBox);
       //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
 
-      Mat currentFrame = frame;
-      Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-
+      Mat currentFrame = fastReduceDimensions(frame,10);
+      //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
+      Mat shrunkFrame = normalizeQueryImage(currentFrame, em,resultToIndex);
+      resize(shrunkFrame,frame,frame.size(),0,0,INTER_LINEAR);
+      shrunkFrame = frame;
       
      if (slowMode == true){
        //draw on screen (later debug only)
