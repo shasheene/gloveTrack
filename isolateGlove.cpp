@@ -16,7 +16,7 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   std::cout << "Bilateral filter to smooth sensor noise (by slight image bluring)\n";
   Mat filtered = Mat::zeros( frame.rows, frame.cols,CV_8UC3 );
   std::cout << "bilateral filter complete. \n";
-  bilateralFilter(unprocessedCameraFrame, filtered, 9, 150,150);//filtersize, sigma color
+  bilateralFilter(unprocessedCameraFrame, filtered,  100, 150,150);//filtersize, sigma color
   frame = filtered;
   
   //if (verbosity>0)
@@ -27,10 +27,22 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
 
   Mat returnFrame = Mat::zeros(frame.rows,frame.cols,CV_8UC3);
   classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
+
+  Rect gloveBoundingBox = fastLocateGlove(returnFrame, 25);
+  //rectangle(returnFrame, gloveBoundingBox, Scalar(255,255,255)); //Draw rectangle represententing tracked location
+  returnFrame = returnFrame(gloveBoundingBox).clone();//CROP
+
+  //Shrink then blow up
+  Mat smallFrame = Mat::zeros(30,30,CV_8UC3);
+  resize(returnFrame,smallFrame,smallFrame.size(),0,0,INTER_LINEAR);
+  resize(smallFrame,returnFrame,returnFrame.size(),0,0,INTER_LINEAR);
+
   std::cout << "EM Classification Complete\n";
-  //returnFrame = fastReduceDimensions(returnFrame, 40, 40);//shrink
+  //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
   return(returnFrame);
 }
+
+
 
 void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray ,EM& em, int (&resultToIndex)[NUMGLOVECOLORS]){
   if (em.isTrained()==false){
