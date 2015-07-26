@@ -7,8 +7,8 @@ set (Glovetrack_VERSION_MAJOR 0)
 set (Glovetrack_VERSION_MINOR 1)
 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/gloveTrackConfig.h.in"
-  "${PROJECT_BINARY_DIR}/gloveTrackConfig.h"
+  "${PROJECT_SOURCE_DIR}/gloveTrackConfig.hpp.in"
+  "${PROJECT_BINARY_DIR}/gloveTrackConfig.hpp"
 )
 
 include_directories("$(PROJECT_BINARY_DIR)")

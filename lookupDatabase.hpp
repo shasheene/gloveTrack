@@ -1,9 +1,9 @@
 #ifndef LOOKUPDATABASE_H
 #define LOOKUPDATABASE_H
 
-#include "libsAndConst.h"
+#include "libsAndConst.hpp"
 
-#include "isolateGlove.h"
+#include "isolateGlove.hpp"
 
 #include "math.h" //sqrt/pow
 #include <iomanip>

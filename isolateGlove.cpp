@@ -1,4 +1,4 @@
-#include "isolateGlove.h"
+#include "isolateGlove.hpp"
 
 Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&resultToIndex)[NUMGLOVECOLORS]) {
   Mat frame = unprocessedCameraFrame;
@@ -36,7 +36,6 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   Mat smallFrame = Mat::zeros(30,30,CV_8UC3);
   resize(returnFrame,smallFrame,smallFrame.size(),0,0,INTER_LINEAR);
   resize(smallFrame,returnFrame,returnFrame.size(),0,0,INTER_LINEAR);
-
   std::cout << "EM Classification Complete\n";
   //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
   return(returnFrame);

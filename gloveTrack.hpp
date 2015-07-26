@@ -1,11 +1,12 @@
 #ifndef GLOVETRACK_H
 #define GLOVETRACK_H
 
-#include "gloveTrackConfig.h"
-#include "libsAndConst.h"
+#include "gloveTrackConfig.hpp"
+#include "libsAndConst.hpp"
 
 #include <iostream>
 
+//Only use C++ library in future?
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -14,12 +15,13 @@
 
 #include <vector>
 
-#include "isolateGlove.h"
-#include "lookupDatabase.h"
-#include "mouse.h"
+#include "isolateGlove.hpp"
+#include "lookupDatabase.hpp"
+#include "mouse.hpp"
 
 
 //For GNU getopt command line arg parsing
+// Maybe replace with c++ library
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

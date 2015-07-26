@@ -1,4 +1,4 @@
-#include "gloveTrack.h"
+#include "gloveTrack.hpp"
 
 void parseCommandLineArgs(int, char**);
 std::string concatStringInt(std::string part1,int part2);

@@ -1,4 +1,4 @@
-#include "lookupDatabase.h"
+#include "lookupDatabase.hpp"
 
 
 int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix, int thresholdBrightness){

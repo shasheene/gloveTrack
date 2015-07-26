@@ -1,7 +1,7 @@
 #ifndef ISOLATEGLOVE_H
 #define ISOLATEGLOVE_H
 
-#include "libsAndConst.h"
+#include "libsAndConst.hpp"
 
 //Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
 Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,int (&resultToIndex)[NUMGLOVECOLORS]);
