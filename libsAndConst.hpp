@@ -7,9 +7,9 @@
 using namespace cv;
 
 
-//globals set in gloveTrack.cpp
-extern double iWidth;
-extern double iHeight;
+//globals set in gloveTrack.cpp. Will remove at some point
+extern double image_width;
+extern double image_height;
 extern int verbosity;
 extern std::vector<Mat> comparisonImages;
 
@@ -26,6 +26,14 @@ extern int classificationArrayIndex; //Used for calibration mode mouse.cpp event
 //brightness and constrast changes
 #define ALPHA 1 //1.3
 #define BETA 0 //15
+
+//We define some constants for internal processing
+#define OUTPUT_HEIGHT 200
+#define OUTPUT_WIDTH 200
+#define INTERMEDIATE_HEIGHT 100
+#define INTERMEDIATE_WIDTH 100
+#define NORMALIZED_HEIGHT 40
+#define NORMALIZED_WIDTH 40
 
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 

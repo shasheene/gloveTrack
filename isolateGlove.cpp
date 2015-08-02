@@ -2,43 +2,56 @@
 
 Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&resultToIndex)[NUMGLOVECOLORS]) {
   Mat frame = unprocessedCameraFrame;
-  //Shrink image because 2000x2000 from phone camera is far to big
+  //We shrink the image because 2000x2000 from phone camera is far to big
   //frame = fastReduceDimensions(frame, 500, 500);//shrink to speedup other algorithm
 
   //CV EM requires array of "samples" (each sample is a pixel RGB value)
   if (verbosity>0)
     std::cout << "\"Flattening\" input image into array of samples (pixels) for further processing \n";
-  Mat sampleArray = Mat::zeros( frame.rows * frame.cols, 3, CV_32FC1 );
-  convertToSampleArray(frame, sampleArray);
+
+  Mat shrunkFrame = Mat::zeros(INTERMEDIATE_HEIGHT,INTERMEDIATE_WIDTH,CV_8UC3);
+  resize(frame,shrunkFrame,shrunkFrame.size(),0,0,INTER_LINEAR);
+
+  //Mat sampleArray = Mat::zeros( shrunkFrame.rows * shrunkFrame.cols, 3, CV_32FC1 );
+  //convertToSampleArray(shrunkFrame, sampleArray);
 
   
   //if (verbosity>0)
   std::cout << "Bilateral filter to smooth sensor noise (by slight image bluring)\n";
-  Mat filtered = Mat::zeros( frame.rows, frame.cols,CV_8UC3 );
+  Mat filtered = Mat::zeros( shrunkFrame.rows, shrunkFrame.cols,CV_8UC3 );
   std::cout << "bilateral filter complete. \n";
-  bilateralFilter(unprocessedCameraFrame, filtered,  100, 150,150);//filtersize, sigma color
+  bilateralFilter(shrunkFrame, filtered,  50, 5, BORDER_DEFAULT);//filtersize, sigma color
   frame = filtered;
-  
+  /*  Mat outputFrame = Mat::zeros(OUTPUT_WIDTH,OUTPUT_HEIGHT,CV_8UC3);
+  resize(filtered,outputFrame,outputFrame.size(),0,0,INTER_LINEAR);
+  return outputFrame;*/
+
   //if (verbosity>0)
   //std::cout << "Cropping image using several interations of meanshift clustering algorithm\n";
 
   if (verbosity>0)
     std::cout << "Expectation Maximization prediction on every pixel to classify the colors as either background or one of the glove colors\n";
 
+
+  Mat sampleArray = Mat::zeros( frame.rows * frame.cols, 3, CV_32FC1 );
+  convertToSampleArray(frame, sampleArray);
+
   Mat returnFrame = Mat::zeros(frame.rows,frame.cols,CV_8UC3);
   classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
 
-  Rect gloveBoundingBox = fastLocateGlove(returnFrame, 25);
+  Rect gloveBoundingBox = fastLocateGlove(returnFrame, 60);
   //rectangle(returnFrame, gloveBoundingBox, Scalar(255,255,255)); //Draw rectangle represententing tracked location
   returnFrame = returnFrame(gloveBoundingBox).clone();//CROP
-
+  
+  
   //Shrink then blow up
-  Mat smallFrame = Mat::zeros(30,30,CV_8UC3);
+  Mat smallFrame = Mat::zeros(NORMALIZED_WIDTH,NORMALIZED_HEIGHT,CV_8UC3);
   resize(returnFrame,smallFrame,smallFrame.size(),0,0,INTER_LINEAR);
-  resize(smallFrame,returnFrame,returnFrame.size(),0,0,INTER_LINEAR);
+  Mat outputFrame = Mat::zeros(OUTPUT_WIDTH,OUTPUT_HEIGHT,CV_8UC3);
+  resize(smallFrame,outputFrame,outputFrame.size(),0,0,INTER_LINEAR);
   std::cout << "EM Classification Complete\n";
   //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
-  return(returnFrame);
+  return(outputFrame);
 }
 
 
