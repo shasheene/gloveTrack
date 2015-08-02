@@ -18,3 +18,8 @@ include_directories(${OpenCV_INCLUDE_DIR})
 
 add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp)
 target_link_libraries( gloveTrack ${OpenCV_LIBS})
+
+# Copy database directory (containing training and testing image sets) to build/ directory
+add_custom_command(TARGET gloveTrack POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/db/ $<TARGET_FILE_DIR:gloveTrack>/db/)
