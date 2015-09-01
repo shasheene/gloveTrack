@@ -15,6 +15,7 @@
 
 #include <vector>
 
+//Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
 #include "isolateGlove.hpp"
 #include "lookupDatabase.hpp"
 #include "mouse.hpp"

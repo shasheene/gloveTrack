@@ -16,7 +16,7 @@ include_directories("$(PROJECT_BINARY_DIR)")
 #find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIR})
 
-add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp)
+add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp commandLineArguments.cpp)
 target_link_libraries( gloveTrack ${OpenCV_LIBS})
 
 # Copy database directory (containing training and testing image sets) to build/ directory

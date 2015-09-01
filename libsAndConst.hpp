@@ -3,15 +3,18 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv/highgui.h> //otherwise ‘CV_WINDOW_AUTOSIZE’ undeclared error
+#include "gloveTrackConfig.hpp"
 
 using namespace cv;
 
 
 //globals set in gloveTrack.cpp. Will remove at some point
-extern double image_width;
-extern double image_height;
 extern int verbosity;
 extern std::vector<Mat> comparisonImages;
+
+extern bool realTimeMode;
+extern int videoCaptureDeviceNumber;
+extern bool slowMode;
 
 extern int thresholdBrightness;
 
@@ -28,12 +31,12 @@ extern int classificationArrayIndex; //Used for calibration mode mouse.cpp event
 #define BETA 0 //15
 
 //We define some constants for internal processing
-#define OUTPUT_HEIGHT 200
-#define OUTPUT_WIDTH 200
-#define INTERMEDIATE_HEIGHT 100
-#define INTERMEDIATE_WIDTH 100
-#define NORMALIZED_HEIGHT 40
-#define NORMALIZED_WIDTH 40
+#define OUTPUT_HEIGHT 50
+#define OUTPUT_WIDTH 50
+#define INTERMEDIATE_HEIGHT 75
+#define INTERMEDIATE_WIDTH 75
+#define NORMALIZED_HEIGHT 32
+#define NORMALIZED_WIDTH 32
 
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 
