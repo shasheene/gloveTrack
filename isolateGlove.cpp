@@ -1,6 +1,8 @@
 #include "isolateGlove.hpp"
+#include "commandLineArguments.hpp"
 
-Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&resultToIndex)[NUMGLOVECOLORS]) {
+Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
+          int (&resultToIndex)[NUMGLOVECOLORS], struct arguments args) {
   Mat frame = unprocessedCameraFrame;
   //We shrink the image because 2000x2000 from phone camera is far to big
   //frame = fastReduceDimensions(frame, 500, 500);//shrink to speedup other algorithm
@@ -9,7 +11,7 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   if (verbosity>0)
     std::cout << "\"Flattening\" input image into array of samples (pixels) for further processing \n";
 
-  Mat shrunkFrame = Mat::zeros(INTERMEDIATE_HEIGHT,INTERMEDIATE_WIDTH,CV_8UC3);
+  Mat shrunkFrame = Mat::zeros(args.processingWidth,args.processingHeight,CV_8UC3);
   resize(frame,shrunkFrame,shrunkFrame.size(),0,0,INTER_LINEAR);
 
   //Mat sampleArray = Mat::zeros( shrunkFrame.rows * shrunkFrame.cols, 3, CV_32FC1 );
@@ -45,9 +47,9 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM, int (&result
   
   
   //Shrink then blow up
-  Mat smallFrame = Mat::zeros(NORMALIZED_WIDTH,NORMALIZED_HEIGHT,CV_8UC3);
+  Mat smallFrame = Mat::zeros(args.normalizedWidth,args.normalizedHeight,CV_8UC3);
   resize(returnFrame,smallFrame,smallFrame.size(),0,0,INTER_LINEAR);
-  Mat outputFrame = Mat::zeros(OUTPUT_WIDTH,OUTPUT_HEIGHT,CV_8UC3);
+  Mat outputFrame = Mat::zeros(args.displayWidth,args.displayHeight,CV_8UC3);
   resize(smallFrame,outputFrame,outputFrame.size(),0,0,INTER_LINEAR);
   std::cout << "EM Classification Complete\n";
   //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink

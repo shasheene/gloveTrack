@@ -30,14 +30,6 @@ extern int classificationArrayIndex; //Used for calibration mode mouse.cpp event
 #define ALPHA 1 //1.3
 #define BETA 0 //15
 
-//We define some constants for internal processing
-#define OUTPUT_HEIGHT 50
-#define OUTPUT_WIDTH 50
-#define INTERMEDIATE_HEIGHT 75
-#define INTERMEDIATE_WIDTH 75
-#define NORMALIZED_HEIGHT 32
-#define NORMALIZED_WIDTH 32
-
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 
 extern Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame);//same size image

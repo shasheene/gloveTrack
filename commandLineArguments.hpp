@@ -11,7 +11,29 @@
 #include <unistd.h>
 #include <getopt.h>
 
+/**
+ * Struct containing parsed command-line parameters
+ * 
+ * They are populated at startup with reasonable defaults but are overwritten by 
+ * the relevant command-line parameters.
+ * 
+ */
+struct arguments {
+  bool interactiveMode;
+  int videoCaptureDevice;
+  bool verbose;
+  int numGloveColors;
 
-void parseCommandLineArgs(int argc, char** argv);
+  int processingWidth;
+  int processingHeight;
+  
+  int normalizedWidth;
+  int normalizedHeight;
+
+  int displayWidth;
+  int displayHeight;
+};
+
+void parseCommandLineArgs(int argc, char** argv, struct arguments &args);
 
 #endif

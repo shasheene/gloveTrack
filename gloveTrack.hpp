@@ -18,8 +18,8 @@
 //Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
 #include "isolateGlove.hpp"
 #include "lookupDatabase.hpp"
+#include "commandLineArguments.hpp"
 #include "mouse.hpp"
-
 
 //For GNU getopt command line arg parsing
 // Maybe replace with c++ library

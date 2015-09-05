@@ -4,7 +4,8 @@
 #include "libsAndConst.hpp"
 
 //Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
-Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,int (&resultToIndex)[NUMGLOVECOLORS]);
+Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
+                        int (&resultToIndex)[NUMGLOVECOLORS], struct arguments args);
 
 /**
 Perform segmentation (clustering) using EM algorithm

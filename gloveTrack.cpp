@@ -1,6 +1,5 @@
 #include "gloveTrack.hpp"
 
-void parseCommandLineArgs(int, char**);
 std::string concatStringInt(std::string part1, int part2);
 
 Mat captureFrame(VideoCapture device); //takes photo and returns it
@@ -13,6 +12,7 @@ std::vector<Mat> testingImages;
 double image_width, image_height;
 int thresholdBrightness;
 
+
 Mat frame;
 
 Scalar classificationColor[NUMGLOVECOLORS];
@@ -22,17 +22,28 @@ Scalar blenderGloveColor[NUMGLOVECOLORS];
 
 //Debug and helper function
 bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber);
-void drawCurrentClassificationColors(Mat &targetFrame);//draws vertical squares representing classifcation color
-
+void drawCurrentClassificationColors(Mat &targetFrame); //draws vertical squares representing classifcation color
 bool realTimeMode = true;
 int videoCaptureDeviceNumber = 0;
 
 bool slowMode; //extra info above debug mode
 
-int main(int argc, char** argv){
-  verbosity=0;
-  slowMode =false;
-  parseCommandLineArgs(argc,argv);
+int main(int argc, char** argv) {
+  verbosity = 0;
+
+  struct arguments args;
+  args.interactiveMode = false;
+  args.videoCaptureDevice = 0;
+  args.verbose = false;
+  args.numGloveColors = 0;
+  args.processingWidth = 25;
+  args.processingHeight = 25;
+  args.normalizedWidth = 25;
+  args.normalizedHeight = 25;
+  args.displayWidth = 75;
+  args.displayHeight = 75;
+
+  parseCommandLineArgs(argc, argv, args);
   std::string trainingImagePath("db/blenderImg/");
   std::string testingImagePath("db/test/");
 
@@ -106,8 +117,8 @@ int main(int argc, char** argv){
     for (int i=0;i<6;i++) {
       Mat input = fastReduceDimensions(testImages[i],50);
       std::cout << "running EM on query image " << i << std::endl;
-      Mat normalizedImage = normalizeQueryImage(input, em,resultToIndex);
-      imshow("gloveTrack",normalizedImage);
+      Mat normalizedImage = normalizeQueryImage(input, em, resultToIndex,args);
+      imshow("gloveTrack", normalizedImage);
       waitKey(0);
     }
 
@@ -186,14 +197,12 @@ int main(int argc, char** argv){
       double t = (double)getTickCount(); //fps calculation
       frame = captureFrame(captureDevice);
 
-      //In future, do image processing here
-      //Mat backgroundRemovalFrame = backgroundFrame(gloveBoundingBox);
-      //currentFrame = cleanupImage(currentFrame, backgroundRemovalFrame); //Returns image classified into colors. All the smarts (and slowness) here
+      //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
+      Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args);
 
       Mat currentFrame = fastReduceDimensions(frame,10);
       //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-      Mat shrunkFrame = normalizeQueryImage(currentFrame, em,resultToIndex);
-      
+     
       if (slowMode == true){
 	//draw on screen (later debug only)
 	Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
