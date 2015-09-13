@@ -6,7 +6,6 @@ Mat captureFrame(VideoCapture device); //takes photo and returns it
 int numImagesTaken = 0;
 
 //Globals (declared extern'd in libsAndConst.h and defined mostly in main)
-int verbosity;
 std::vector<Mat> comparisonImages;
 std::vector<Mat> testingImages;
 double image_width, image_height;
@@ -29,12 +28,13 @@ int videoCaptureDeviceNumber = 0;
 bool slowMode; //extra info above debug mode
 
 int main(int argc, char** argv) {
-  verbosity = 0;
+  //In other functions, initially get a logger reference with "spdlog::get("console")"
+  auto console = spdlog::stdout_logger_mt("console");
+  console->info("gloveTrack");
 
   struct arguments args;
   args.interactiveMode = false;
   args.videoCaptureDevice = 0;
-  args.verbose = false;
   args.numGloveColors = 0;
   args.processingWidth = 25;
   args.processingHeight = 25;
@@ -102,8 +102,8 @@ int main(int argc, char** argv) {
     rawTrainingImages[0] = fastReduceDimensions(imread("db/trainingSet/train1_unlabelled.png",1),10);
       labelledTrainingImages[0] = fastReduceDimensions(imread("db/trainingSet/train1_labelled.png",1),10);
 
-    std::cout << "Training expectation maximization model" << std::endl;
-    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
+    console->info("Training expectation maximization model");
+    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
 
     Mat testImages[6];
 
@@ -114,16 +114,16 @@ int main(int argc, char** argv) {
     testImages[4] = imread("db/testingSet/test5.png",1);
     testImages[5] = imread("db/testingSet/test6.jpg",1);
 
-    for (int i=0;i<6;i++) {
-      Mat input = fastReduceDimensions(testImages[i],50);
-      std::cout << "running EM on query image " << i << std::endl;
+    for (int i = 0; i < 6; i++) {
+      Mat input = fastReduceDimensions(testImages[i], 50);
+      SPDLOG_TRACE(console, "Running EM on query image");
       Mat normalizedImage = normalizeQueryImage(input, em, resultToIndex,args);
       imshow("gloveTrack", normalizedImage);
       waitKey(0);
     }
 
-    for (int i=0;i<testingImages.size();i++){
-      std::cerr << "Testing image number " << i << std::endl;
+    for (int i = 0; i < testingImages.size(); i++) {
+      console->info("Testing image number {}",i);
 
       imshow("gloveTrack",testingImages.at(i));  
       waitKey(0);
@@ -131,11 +131,10 @@ int main(int argc, char** argv) {
       //Output X nearest neighbors by weighted hamming distance, 
       std::vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
 
-      for (int i=0;i<nearestNeighboors.size();i++) {
-	std::cout << nearestNeighboors.at(i) << " ";
+      for (int i = 0; i < nearestNeighboors.size(); i++) {
+        console->info("Testing image number {}",nearestNeighboors.at(i));
       }
-
-      std::cout << "\nWaiting for user input before moving  to next image " << std::endl;
+      console->info("Waiting for user input before moving to next image");
       waitKey(0);
     }
   } else {
@@ -146,10 +145,11 @@ int main(int argc, char** argv) {
     VideoCapture captureDevice;
     //openCaptureDevice(captureDevice, videoCaptureDeviceNumber); //videoCaptureDeviceNumber from -c argument
 
-    captureDevice.open("../db/vid.mp4");
-
+    const char* video = "db/testingSet/fullFrameVideo.mp4";
+    console->info("Attempting to open {}", video);
+    captureDevice.open(video);
     if (!captureDevice.isOpened()) {
-      std::cerr << " Unable to open video capture device " << videoCaptureDeviceNumber << " too. Quitting" << std::endl;
+      console->info("Unable to open video capture device {} too. Quitting", videoCaptureDeviceNumber);
       exit(1);
     }
 
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
     int resultToIndex[NUMGLOVECOLORS];//initialized in training function
 
-    std::cout << "Loading expectation maximization training set" << std::endl;
+    console->info("Loading expectation maximization training set", videoCaptureDeviceNumber);
     Mat rawTrainingImages[1];
     Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
@@ -175,8 +175,8 @@ int main(int argc, char** argv) {
     //rawTrainingImages[1] = imread("db/test/miniC.png",1);
     //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
 
-    std::cout << "Training expectation maximization model" << std::endl;
-    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages,1, em, resultToIndex); //Magic 2, the number of training images. fix
+    console->info("Training expectation maximization model", videoCaptureDeviceNumber);
+    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
 
     image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
     image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -221,47 +221,46 @@ int main(int argc, char** argv) {
 	}*/
 
 
-      if (verbosity>0){
-	drawCurrentClassificationColors(frame); 
-      }
-  
+        //drawCurrentClassificationColors(frame);
+
+
       //READ KEYBOARD
       int c = waitKey(1);
-      switch(c) {
-      case 'p':
-	std::cerr << "P pressed. Pushing back photo number " <<  numImagesTaken << " into " << numImagesTaken+initialImageDatabaseSize << std::endl;
-	comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
-	numImagesTaken++;
-	break;
-      case '[':
-	if (thresholdBrightness>0){
-	  thresholdBrightness--;
-	}
-	std::cerr << "Threshold brightness now: " << thresholdBrightness << std::endl;
-	break;
-      case ']':
-	if (thresholdBrightness<255){
-	  thresholdBrightness++;
-	}
-	std::cerr << "Threshold brightness now: " << thresholdBrightness << std::endl;
-	break;
-      case 'q':
-	if (verbosity>0) {
-	  //Backup unsaved comparison image files:
-	  saveDatabase(comparisonImages, initialImageDatabaseSize,  databaseImagePath);
-	  
-	  //Later, save classification colors to image file
-	  for (int i=0; i< NUMGLOVECOLORS; i++){
-	    std::cerr << classificationColor[i] <<std::endl;
-	  }
-	}
-	exit(0);
-	break;
+      switch (c) {
+        case 'p':
+          console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
+          //comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
+          //numImagesTaken++;
+          break;
+        case '[':
+          if (thresholdBrightness > 0) {
+            thresholdBrightness--;
+          }
+          console->info("Threshold brightness now: {}", thresholdBrightness);
+          break;
+        case ']':
+          if (thresholdBrightness < 255) {
+            thresholdBrightness++;
+          }
+          console->info("Threshold brightness now: {}", thresholdBrightness);
+          break;
+        case 'q':
+          /*if (verbosity > 0) {
+            //Backup unsaved comparison image files:
+            saveDatabase(comparisonImages, initialImageDatabaseSize, databaseImagePath);
+
+            //Later, save classification colors to image file
+            for (int i = 0; i < NUMGLOVECOLORS; i++) {
+              console->info("{}", classificationColor[i]);
+            }
+          }*/
+          exit(0);
+          break;
       }
-      
-      imshow("gloveTrack",frame);
-      t = ((double)getTickCount() - t)/getTickFrequency();
-      if(verbosity>2){std::cout << "Times passed in seconds: " << t << std::endl;}
+
+      imshow("gloveTrack", shrunkFrame);
+      t = ((double) getTickCount() - t) / getTickFrequency();
+        SPDLOG_TRACE(console, "Times passed in seconds {}", t);
     }
   }
   return (0);
@@ -293,9 +292,9 @@ bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber) {
 
 Mat captureFrame(VideoCapture device) {
   Mat frame;
-  bool readable= device.read(frame);
-  if( !readable) {
-    std::cerr << "Cannot read frame from video stream" << std::endl;
+  bool readable = device.read(frame);
+  if (!readable) {
+    spdlog::get("console")->info("Cannot read frame from video stream");
     exit(1);
   }
   return (frame);

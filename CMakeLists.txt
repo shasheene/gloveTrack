@@ -19,6 +19,10 @@ include_directories(${OpenCV_INCLUDE_DIR})
 add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp commandLineArguments.cpp)
 target_link_libraries( gloveTrack ${OpenCV_LIBS})
 
+# Ubuntu 12.04 repositories only have CMake 2.8.12.2. Latter versions have explicit
+# support to force C++11 compilation. Not ideal, but gets the job done.
+list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs")
+
 # Copy database directory (containing training and testing image sets) to build/ directory
 add_custom_command(TARGET gloveTrack POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory

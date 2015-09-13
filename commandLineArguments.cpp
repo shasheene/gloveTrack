@@ -7,7 +7,8 @@
  * 
  */
 void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
-  char *cvalue = NULL;
+  auto console = spdlog::get("console");
+
   int index;
   int c;
 
@@ -15,7 +16,6 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
   int option_index = 0;
   static struct option long_options[] = {
     {"help", no_argument, 0, 'h'},
-    {"verbose", optional_argument, 0, 'v'},
     {"version", no_argument, 0, 0},
     {"testing-set-location", required_argument, 0, 0},
     {"training-set-location", required_argument, 0, 0},
@@ -42,11 +42,11 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
       case 0:
         char* long_option;
         long_option= (char* )long_options[option_index].name;
-        std::cout << "option " << long_option;
         if (optarg) {
-          std::cout << " with arg " << optarg;
+            console->info("Option {} given with argument {}",long_option,optarg);
+        } else {
+            console->info("Option {} given");
         }
-        std::cout << std::endl;
         
          if (0 == strcmp("testing-set-location",long_option)) {
           //
@@ -77,7 +77,6 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         std::cout << "Example: ./gloveTrack -i" << std::endl;
         std::cout << "   -i,--interactive-mode              Shows processing on-screen in real-time" << std::endl;
         std::cout << "   -c,--capture-device=INDEX          Select video capture device (eg, built-in webcam might be 0)" << std::endl;
-        std::cout << "   -v,--verbose                       Verbose debug output (to stdout)" << std::endl;
 
         std::cout << "      --training-set=PATH             Directory containing labelled and unlabelled images for 'supervised' training of the statistical model" << std::endl;
         std::cout << "      --testing-set=PATH|VIDEO        Directory (or video file) containing raw images for offline (non live-camera) processing, for demonstration and development (Cannot be used with -c)" << std::endl;
@@ -98,33 +97,29 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         
         exit(0);
         break;
-      case 'v':
-        verbosity = atoi(optarg);
-        break;
       case 'i':
-        std::cout << "Interactive Mode (non-headless)" << std::endl;
+        console->info("Interactive Mode (non-headless)");
         realTimeMode = false;
         break;
       case 's':
-        std::cout << "Slow mode enabled (even more info than debug mdoe" << std::endl;
+        console->info("Slow mode enabled (even more info than debug mode");
         slowMode = true;
         break;
       case 'c':
         videoCaptureDeviceNumber = atoi(optarg);
-        std::cout << "Video capture device selected is " << videoCaptureDeviceNumber  << std::endl;
+        console->info("Video capture device selected is {}", videoCaptureDeviceNumber);
         break;
       case 'n':
         atoi(optarg);
-        std::cout << "Video capture device selected is ???" << std::endl;
+        console->info("Video capture device selected is ???");
         break;
       case '?':
         break;
       default:
-        printf("?? getopt returned character code 0%o ??\n", c);
+        console->error("?? getopt returned character code {} ??", c);
         abort();
     }
-  printf("Video capture device number is %s\n", cvalue);
 
   for (index = optind; index < argc; index++)
-    printf("Non-option argument %s\n", argv[index]);
+    console->error("Non-option argument %s", argv[index]);
 }

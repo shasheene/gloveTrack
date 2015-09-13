@@ -21,7 +21,6 @@
 struct arguments {
   bool interactiveMode;
   int videoCaptureDevice;
-  bool verbose;
   int numGloveColors;
 
   int processingWidth;

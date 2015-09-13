@@ -5,6 +5,10 @@
 #include <opencv/highgui.h> //otherwise ‘CV_WINDOW_AUTOSIZE’ undeclared error
 #include "gloveTrackConfig.hpp"
 
+// Header only library used for logging
+#include "include/spdlog/spdlog.h"
+
+
 using namespace cv;
 
 

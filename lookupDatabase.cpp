@@ -2,20 +2,20 @@
 
 
 int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix, int thresholdBrightness){
-  std::cerr << "Loading raw image database..." << std::endl;
+  auto console = spdlog::get("console");
+  console->info("Loading raw image database...");
   
     bool imagesLeftToLoad=true;
     int index = 1; //start from 1 for blender
     while (imagesLeftToLoad==true) {
       std::string imageInputFilepath(concatStringInt(databaseFilepathPrefix,index));
       imageInputFilepath.append(".png");//png for blender images. JPG for opencv saved img
-      if (verbosity>2){
-	std::cerr << "Loading into database:" << imageInputFilepath << std::endl;
-      }
-      
+
+      SPDLOG_TRACE(console, "Loading into database: {}", imageInputFilepath);
+
       Mat loadedImage = imread(imageInputFilepath,1);
       if (loadedImage.data==NULL) {
-	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
+	console->info("Unable to read: {}. Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)", imageInputFilepath);
 	imagesLeftToLoad=false;
       } else {
 	imageVector.push_back(fastNormalizeQueryImage(loadedImage, thresholdBrightness).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
@@ -26,19 +26,18 @@ int loadImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepath
 }
 
 int loadCameraImageDatabase(std::vector<Mat> &imageVector,std::string databaseFilepathPrefix, int thresholdBrightness){
-    std::cerr << "Loading camera image database..." << std::endl;
+  auto console = spdlog::get("console");
+  console->info("Loading camera image database...");
     bool imagesLeftToLoad=true;
     int index = 1; //start from 1 for blender
     while (imagesLeftToLoad==true) {
       std::string imageInputFilepath(concatStringInt(databaseFilepathPrefix,index));
       imageInputFilepath.append(".png");//png for blender images. JPG for opencv saved img
-      if (verbosity>2){
-	std::cerr << "Loading into database:" << imageInputFilepath << std::endl;
-      }
-      
+      SPDLOG_TRACE(console, "Loading into database: {}",imageInputFilepath);
+
       Mat loadedImage = imread(imageInputFilepath,1);
       if (loadedImage.data==NULL) {
-	std::cerr << "Unable to read:" << imageInputFilepath << std::endl << "Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)" << std::endl;
+        console->info("Unable to read: {}. Finished reading database (or else missing file, incorrect permissions, unsupported/invalid format)",imageInputFilepath);
 	imagesLeftToLoad=false;
       } else {
 	imageVector.push_back(tempNormalizeCamera(loadedImage, thresholdBrightness).clone()); //Assumes all saved images are correct sized/valid. Cloning because OpenCV normally just overwrites the single mem allocation for efficiency.
@@ -49,10 +48,11 @@ int loadCameraImageDatabase(std::vector<Mat> &imageVector,std::string databaseFi
 }
 
 void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::string databaseFilepathPrefix){ 
+  auto console = spdlog::get("console");
   for (int i=originalDatabaseSize;i<imageVector.size();i++){
     std::string imageOutputFilepath(concatStringInt(databaseFilepathPrefix,i));
     imageOutputFilepath.append(".jpg");
-    std::cerr << "Saving photos in " << imageOutputFilepath << std::endl;
+    console->info("Saving photos in {}",imageOutputFilepath);
     imwrite( imageOutputFilepath, comparisonImages.at(i));
   }
 }
@@ -118,8 +118,7 @@ std::vector<int> queryDatabasePose(Mat curr) {
     }
 
     addToNearestNeighbor(runningTotalHammingDist,q,indexOfNearestNeighbor, distToNearestNeighbor);
-    std::cerr << "working:" << q << " distance was " << runningTotalHammingDist  <<  "\n";   
-
+    spdlog::get("console")->info("working: {} distance was {}",runningTotalHammingDist, q);   
   }
   return indexOfNearestNeighbor;
 }
