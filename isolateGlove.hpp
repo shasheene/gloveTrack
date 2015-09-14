@@ -5,15 +5,15 @@
 
 //Full normalization methods - (bilateral filter, expectation maximization (Guassian Mixture Model) for color classifications, meanshift (crop).
 Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
-                        int (&resultToIndex)[NUMGLOVECOLORS], struct arguments args);
+        int (&resultToIndex)[NUMGLOVECOLORS], struct arguments args);
 
 /**
 Perform segmentation (clustering) using EM algorithm
-**/
+ **/
 void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray, EM& em, int (&resultToIndex)[NUMGLOVECOLORS]);
 
 //Pass in array of training images (currently not array though)
-bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrainingImages[], int numTrainingImages,EM& em, int (&resultToIndex)[NUMGLOVECOLORS]);
+bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrainingImages[], int numTrainingImages, EM& em, int (&resultToIndex)[NUMGLOVECOLORS]);
 
 //Compares each pixel of prelabelledSampleArray to classificationColor array and trains a classifier  normal ("g (Guassian Mixture Model)
 void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleArray, Mat& prob, int numClustersInEM);
@@ -28,9 +28,12 @@ Mat fastNormalizeQueryImage(Mat unprocessedCameraFrame, int darkThreshold);
 Mat tempNormalizeCamera(Mat unprocessedCameraFrame, int thresholdBrightness);
 
 Mat fastClassifyColors(Mat croppedImage);
-Mat classifyCamera(Mat croppedImage);//temp
+Mat classifyCamera(Mat croppedImage); //temp
 
 //Below should be obselete because only want one cycle over image during online processing
+
+
+Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance);
 
 //Returns position of glove as cv::Rect
 Rect fastLocateGlove(Mat region, int darkThreshold);

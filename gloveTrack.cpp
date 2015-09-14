@@ -153,149 +153,140 @@ int main(int argc, char** argv) {
       exit(1);
     }
 
-    int no_of_clusters = NUMGLOVECOLORS;
-    EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
-    int resultToIndex[NUMGLOVECOLORS];//initialized in training function
+        int no_of_clusters = NUMGLOVECOLORS;
+        EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
+        int resultToIndex[NUMGLOVECOLORS]; //initialized in training function
 
-    console->info("Loading expectation maximization training set", videoCaptureDeviceNumber);
-    Mat rawTrainingImages[1];
-    Mat labelledTrainingImages[1];//colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
+        console->info("Loading expectation maximization training set", videoCaptureDeviceNumber);
+        Mat rawTrainingImages[1];
+        Mat labelledTrainingImages[1]; //colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
-    int percentScaling = 10;
+        int percentScaling = 10;
+        rawTrainingImages[0] = fastReduceDimensions(imread("db/trainingSet/train1_unlabelled.png", 1), percentScaling);
+        labelledTrainingImages[0] = fastReduceDimensions(imread("db/trainingSet/train1_labelled.png", 1), percentScaling);
+        //rawTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/trainSmall1.png",1), percentScaling);
+        //labelledTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/trainLabelledSmall1.png",1),percentScaling);
+        //rawTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/t1.png",1), percentScaling);
+        //labelledTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/t1.png",1),percentScaling);
+        //rawTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/trainSmallX.png",1), percentScaling);
+        //labelledTrainingImages[0] = fastReduceDimensions(imread("../db/newGlove/trainSmallXLabelled.png",1),percentScaling);
 
-    rawTrainingImages[0] = fastReduceDimensions(imread("db/train_unlabelled.png",1), percentScaling);
-    labelledTrainingImages[0] = fastReduceDimensions(imread("db/train_labelled.png",1),percentScaling);
-    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmall1.png",1), percentScaling);
-    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainLabelledSmall1.png",1),percentScaling);
-    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1), percentScaling);
-    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/t1.png",1),percentScaling);
-    //rawTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallX.png",1), percentScaling);
-    //labelledTrainingImages[0] = fastReduceDimensions(imread("db/newGlove/trainSmallXLabelled.png",1),percentScaling);
-    
-    //rawTrainingImages[1] = imread("db/test/miniC.png",1);
-    //labelledTrainingImages[1] = imread("db/test/miniCLabelled.png",1);
+        //rawTrainingImages[1] = imread("../db/test/miniC.png",1);
+        //labelledTrainingImages[1] = imread("../db/test/miniCLabelled.png",1);
 
-    console->info("Training expectation maximization model", videoCaptureDeviceNumber);
-    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
+        console->info("Training expectation maximization model", videoCaptureDeviceNumber);
+        trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
 
-    image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
-    image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
-  
-    //Size of reduced dimensionality image
-    int databaseImageWidth = 50;
-    int databaseImageHeight = 50;
+        image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
+        image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-    //Load image database
-    int initialImageDatabaseSize = loadImageDatabase(comparisonImages, databaseImagePath, 64);
-  
-    //Later load classificationColors from image file
+        //Size of reduced dimensionality image
+        int databaseImageWidth = 50;
+        int databaseImageHeight = 50;
 
-    //Untouched background for calibration. Currently REQUIRING white background and doing no computation with it
-    Mat backgroundFrame = captureFrame(captureDevice);
+        //Load image database
+        int initialImageDatabaseSize = loadImageDatabase(comparisonImages, databaseImagePath, 64);
 
-    while( true ) {
-      double t = (double)getTickCount(); //fps calculation
-      frame = captureFrame(captureDevice);
+        while (true) {
+            double t = (double) getTickCount(); //fps calculation
+            frame = captureFrame(captureDevice);
 
-      //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-      Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args);
+            //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
+            Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args);
 
-      Mat currentFrame = fastReduceDimensions(frame,10);
-      //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-     
-      if (slowMode == true){
-	//draw on screen (later debug only)
-	Rect currentFrameScreenLocation(Point(40,40), currentFrame.size());
-	currentFrame.copyTo(frame(currentFrameScreenLocation));
-      }
-
-      //Second run over image for faster lookup later. (May merge with cleanup)
-      Rect shrunkFrameScreenLocation(Point(0,0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
-      shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
-      /*
-      if (comparisonImages.size() > 0){
-	std::vector<int> indexOfMatch = queryDatabasePose(currentFrame);
-	Rect roi(Point(100,240), comparisonImages.at(indexOfMatch.at(0)).size());
-	//Isolate below into "getPoseImage()" later:
-	comparisonImages.at(indexOfMatch.at(0)).copyTo(frame(roi));
-	}*/
-
-
-        //drawCurrentClassificationColors(frame);
-
-
-      //READ KEYBOARD
-      int c = waitKey(1);
-      switch (c) {
-        case 'p':
-          console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
-          //comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
-          //numImagesTaken++;
-          break;
-        case '[':
-          if (thresholdBrightness > 0) {
-            thresholdBrightness--;
-          }
-          console->info("Threshold brightness now: {}", thresholdBrightness);
-          break;
-        case ']':
-          if (thresholdBrightness < 255) {
-            thresholdBrightness++;
-          }
-          console->info("Threshold brightness now: {}", thresholdBrightness);
-          break;
-        case 'q':
-          /*if (verbosity > 0) {
-            //Backup unsaved comparison image files:
-            saveDatabase(comparisonImages, initialImageDatabaseSize, databaseImagePath);
-
-            //Later, save classification colors to image file
-            for (int i = 0; i < NUMGLOVECOLORS; i++) {
-              console->info("{}", classificationColor[i]);
+            if (slowMode == true) {
+                //draw on screen (later debug only)
+                Rect currentFrameScreenLocation(Point(40, 40), frame.size());
+                frame.copyTo(frame(currentFrameScreenLocation));
             }
-          }*/
-          exit(0);
-          break;
-      }
 
-      imshow("gloveTrack", shrunkFrame);
-      t = ((double) getTickCount() - t) / getTickFrequency();
-        SPDLOG_TRACE(console, "Times passed in seconds {}", t);
+            //Second run over image for faster lookup later. (May merge with cleanup)
+            Rect shrunkFrameScreenLocation(Point(0, 0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
+            shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
+            /*
+            if (comparisonImages.size() > 0){
+              std::vector<int> indexOfMatch = queryDatabasePose(currentFrame);
+              Rect roi(Point(100,240), comparisonImages.at(indexOfMatch.at(0)).size());
+              //Isolate below into "getPoseImage()" later:
+              comparisonImages.at(indexOfMatch.at(0)).copyTo(frame(roi));
+              }*/
+
+
+            //drawCurrentClassificationColors(frame);
+
+
+            //READ KEYBOARD
+            int c = waitKey(1);
+            switch (c) {
+                case 'p':
+                    console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
+                    //comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
+                    //numImagesTaken++;
+                    break;
+                case '[':
+                    if (thresholdBrightness > 0) {
+                        thresholdBrightness--;
+                    }
+                    console->info("Threshold brightness now: {}", thresholdBrightness);
+                    break;
+                case ']':
+                    if (thresholdBrightness < 255) {
+                        thresholdBrightness++;
+                    }
+                    console->info("Threshold brightness now: {}", thresholdBrightness);
+                    break;
+                case 'q':
+                    /*if (verbosity > 0) {
+                      //Backup unsaved comparison image files:
+                      saveDatabase(comparisonImages, initialImageDatabaseSize, databaseImagePath);
+
+                      //Later, save classification colors to image file
+                      for (int i = 0; i < NUMGLOVECOLORS; i++) {
+                        console->info("{}", classificationColor[i]);
+                      }
+                    }*/
+                    exit(0);
+                    break;
+            }
+
+            imshow("gloveTrack", shrunkFrame);
+            t = ((double) getTickCount() - t) / getTickFrequency();
+            SPDLOG_TRACE(console, "Times passed in seconds {}", t);
+        }
     }
-  }
-  return (0);
+    return (0);
 }
 
 //for debug:
 void drawCurrentClassificationColors(Mat &frame) {
-  Rect classificationRect = Rect( image_width - 25 , (image_height/20.0), 25, 45); //area to output classification colors
-  
-  //draw little square to show which color is being calibrated
-  Rect selectorSymbolRect = Rect(image_width - classificationRect.width/2 - 25, (image_height/20.0)+ classificationArrayIndex*classificationRect.height +classificationRect.height/2, 10, 10); //nicely located to the left of the classification colors
-  Mat selectorSymbol(frame,selectorSymbolRect);
-  selectorSymbol = Scalar(0,0,0,0);//black square;
-  selectorSymbol.copyTo(frame(selectorSymbolRect));
-  
-  //draw actual classification colors on screen
-  for (int i=0;i<NUMGLOVECOLORS;i++) {
-    Mat smallBlockOfColor(frame, classificationRect);
-    smallBlockOfColor = classificationColor[i];
-    smallBlockOfColor.copyTo(frame(classificationRect));
-    classificationRect.y += classificationRect.height;
-  }
+    Rect classificationRect = Rect(image_width - 25, (image_height / 20.0), 25, 45); //area to output classification colors
+
+    //draw little square to show which color is being calibrated
+    Rect selectorSymbolRect = Rect(image_width - classificationRect.width / 2 - 25, (image_height / 20.0) + classificationArrayIndex * classificationRect.height + classificationRect.height / 2, 10, 10); //nicely located to the left of the classification colors
+    Mat selectorSymbol(frame, selectorSymbolRect);
+    selectorSymbol = Scalar(0, 0, 0, 0); //black square;
+    selectorSymbol.copyTo(frame(selectorSymbolRect));
+
+    //draw actual classification colors on screen
+    for (int i = 0; i < NUMGLOVECOLORS; i++) {
+        Mat smallBlockOfColor(frame, classificationRect);
+        smallBlockOfColor = classificationColor[i];
+        smallBlockOfColor.copyTo(frame(classificationRect));
+        classificationRect.y += classificationRect.height;
+    }
 }
   
 bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber) {
-  captureDevice.open(deviceNumber);
-  return (captureDevice.isOpened());
+    captureDevice.open(deviceNumber);
+    return (captureDevice.isOpened());
 }
 
 Mat captureFrame(VideoCapture device) {
-  Mat frame;
-  bool readable = device.read(frame);
-  if (!readable) {
-    spdlog::get("console")->info("Cannot read frame from video stream");
-    exit(1);
-  }
-  return (frame);
+    Mat frame;
+    bool readable = device.read(frame);
+    if (!readable) {
+        spdlog::get("console")->info("Cannot read frame from video stream");
+        exit(1);
+    }
+    return (frame);
 }

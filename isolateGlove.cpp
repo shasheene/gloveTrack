@@ -39,6 +39,9 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
     Mat returnFrame = Mat::zeros(frame.rows, frame.cols, CV_8UC3);
     classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
 
+    Mat cropped = meanShiftCrop(returnFrame, 2000, 1);
+
+    /*
     Rect gloveBoundingBox = fastLocateGlove(returnFrame, 60);
     //rectangle(returnFrame, gloveBoundingBox, Scalar(255,255,255)); //Draw rectangle represententing tracked location
     returnFrame = returnFrame(gloveBoundingBox).clone(); //CROP
@@ -50,7 +53,12 @@ Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
     Mat outputFrame = Mat::zeros(args.displayWidth, args.displayHeight, CV_8UC3);
     resize(smallFrame, outputFrame, outputFrame.size(), 0, 0, INTER_LINEAR);
     SPDLOG_TRACE(spdlog::get("console"), "EM Classification Complete");
+     */
     //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
+    Mat outputFrame = Mat::zeros(args.displayWidth, args.displayHeight, CV_8UC3);
+    if (cropped.cols > 10 && cropped.rows > 10) {
+        resize(cropped, outputFrame, outputFrame.size(), 0, 0, INTER_LINEAR);
+    }
     return (outputFrame);
 }
 
@@ -198,6 +206,7 @@ void convertLabelledToEMInitialTrainingProbabilityMatrix(Mat prelabelledSampleAr
     }*/
 }
 
+
 //Rasterize/Convert 2D BGR image matrix (MxN size) to a 1 dimension "sample vector" matrix, where each is a BGR pixel (so, 1x(MxN) size). This is the required format for OpenCV algorithms
 
 Mat convertToSampleArray(Mat frame, Mat& outputSampleArray) {
@@ -245,6 +254,125 @@ Mat tempNormalizeCamera(Mat unprocessedCameraFrame, int thresholdBrightness) {
     return returnFrame;
 }
 
+double euclidianDist(int x1, int y1, int x2, int y2) {
+
+    return ( sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2)));
+
+}
+
+/**
+ *  Cropping is a vital step in normalizing the image for this algorithm.
+ *  We crop our frame in a reproducable manner using the meanShift algorithm.
+ *
+ * As in the research paper, this function uses a a uniform distribution as the 'kernel'.
+ *
+ *
+ * @param frame
+ * @param maximumIterations
+ * @param minimumDistance
+ * @param bandwidth - initially the size of the frame
+ * @return
+ */
+Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance) {
+    int cols = frame.cols;
+    int rows = frame.rows;
+    int channels = frame.channels();
+
+    int currX = (int) cols / (3 * 2);
+    int currY = (int) rows / 2;
+
+    int prevX = 0;
+    int prevY = 0;
+
+    //initial bandwidth should be entire frame
+    int bandwidth = rows + (cols / 3);
+
+    int currentIter = 0;
+    while ((currentIter < maximumIterations) && (euclidianDist(currX, currY, prevX, prevY) > minimumDistance)) {
+        double runningTotalX = 0;
+        double runningTotalY = 0;
+        int numX = 0;
+        int numY = 0;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols * channels; j = j + channels) {//Columns are 3-channel
+                // Only count if non-black pixel
+                if ((frame.ptr<uchar>(i)[j] != 0) && (frame.ptr<uchar>(i)[j + 1] != 0) && (frame.ptr<uchar>(i)[j + 2] != 0)) {
+                    double euclidianDistance = euclidianDist(currX, currY, i, j);
+                    // If it's within the radius
+                    if (euclidianDistance < bandwidth) {
+                        runningTotalX += i;
+                        runningTotalY += (int) (j / channels);
+                        numX++;
+                        numY++;
+                    }
+                }
+            }
+        }
+        prevX = currX;
+        prevY = currY;
+#ifdef SPDLOG_TRACE_ON
+#endif
+        SPDLOG_TRACE(spdlog::get("console"), "runningTotalX {}, runningTotalY {}", runningTotalX, runningTotalY);
+        currX = (int) (runningTotalX / numX);
+        currY = (int) (runningTotalY / numY);
+        bandwidth = (int) (bandwidth * 0.99);
+        currentIter++;
+    }
+
+    //Rectangle may have negative co-ordinates (hand is in top left corner)
+    int topLeftX = currX - (bandwidth / 2);
+    int topLeftY = currY - (bandwidth / 2);
+    int bottomRightX = currX + (bandwidth / 2);
+    int bottomRightY = currY + (bandwidth / 2);
+
+    int croppedImgCols = bottomRightX - topLeftX;
+    int croppedImgRows = bottomRightY - topLeftY;
+
+    // debug parameters during fine tuning
+    spdlog::get("console")->debug("{},{} and {},{}", topLeftX, topLeftY, bottomRightX, bottomRightY);
+    spdlog::get("console")->debug("size {},{}", croppedImgRows, croppedImgCols);
+
+    //quick way to align to colour channel
+    while ((topLeftY % 3) != 0) {
+        topLeftY++;
+    }
+    while ((topLeftX % 3) != 0) {
+        topLeftX++;
+    }
+
+    int cropRowCount = 0;
+    int cropColCount = 0;
+    // Rows x columns
+    Mat toReturn = Mat::zeros(croppedImgRows, croppedImgCols, CV_8UC3);
+    for (int i = topLeftY; i < bottomRightY; i++) {
+        for (int j = topLeftX; j < bottomRightX * channels; j = j + channels) {
+            //if valid
+            if ((i >= 0 && i < rows) && (j >= 0 && j < (cols * channels))) {
+                for (int k = 0; k < channels; k++) {
+                    toReturn.ptr<uchar>(cropRowCount)[cropColCount + k] = frame.ptr<uchar>(i)[j + k];
+                }
+            }
+            cropColCount += channels;
+        }
+        cropColCount = 0;
+        cropRowCount++;
+    }
+    return (toReturn);
+}
+
+/**
+ * Initial implementation of a cropping algorithm. Simply scans horizontally
+ * and vertically and determines image bounds. Doesn't check every pixel but
+ * iterates a certain amount of pixels.
+ *
+ * Normalizing the image to be a search query in a database of thousands needs to
+ * be done in a more robust manner than this. However, there is some value in a
+ * fast-but-low-accuracy method for lower spec machines etc.
+ *
+ * @param region
+ * @param darkThreshold
+ * @return
+ */
 Rect fastLocateGlove(Mat region, int darkThreshold) {
     //LOCATE GLOVE (ie DETERMINE BOUNDING BOX):
     int numRows = region.rows;
@@ -294,6 +422,7 @@ Rect fastLocateGlove(Mat region, int darkThreshold) {
     }
 
     if (gloveRowEnd <= gloveRowStart) {
+
         gloveRowEnd = 100;
         gloveRowStart = 0;
     }
@@ -315,6 +444,7 @@ Mat fastReduceDimensions(Mat region, int percentScaling) {
     //Shrink image by merging adjacent pixels in square
     for (int i = 0; i < shrunkFrame.rows; ++i) {
         for (int j = 0; j < (shrunkFrame.cols * shrunkFrame.channels()); j = j + shrunkFrame.channels()) {
+
             shrunkFrame.ptr<uchar>(i)[j] = region.ptr<uchar>(i * rowSkip)[j * columnSkip];
             shrunkFrame.ptr<uchar>(i)[j + 1] = region.ptr<uchar>(i * rowSkip)[j * columnSkip + 1];
             shrunkFrame.ptr<uchar>(i)[j + 2] = region.ptr<uchar>(i * rowSkip)[j * columnSkip + 2];
@@ -358,6 +488,7 @@ Mat fastClassifyColors(Mat croppedImage) {
                 }
             }
             if (indexOfClosestColor != 0) { //leave blank pixel if classified as background
+
                 croppedImage.ptr<uchar>(i)[j] = classificationColor[indexOfClosestColor][0];
                 croppedImage.ptr<uchar>(i)[j + 1] = classificationColor[indexOfClosestColor][1];
                 croppedImage.ptr<uchar>(i)[j + 2] = classificationColor[indexOfClosestColor][2];
