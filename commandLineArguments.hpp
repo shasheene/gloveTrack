@@ -19,18 +19,18 @@
  * 
  */
 struct arguments {
-  bool interactiveMode;
-  int videoCaptureDevice;
-  int numGloveColors;
+    bool interactiveMode;
+    int videoCaptureDevice;
+    int numGloveColors;
 
-  int processingWidth;
-  int processingHeight;
-  
-  int normalizedWidth;
-  int normalizedHeight;
+    int processingWidth;
+    int processingHeight;
 
-  int displayWidth;
-  int displayHeight;
+    int normalizedWidth;
+    int normalizedHeight;
+
+    int displayWidth;
+    int displayHeight;
 };
 
 void parseCommandLineArgs(int argc, char** argv, struct arguments &args);

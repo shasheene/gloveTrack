@@ -103,7 +103,7 @@ bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrai
     for (int i = 0; i < numTrainingImages; i++) {
         numSamples += (rawTrainingImages[i].cols * rawTrainingImages[i].rows);
     }
-    console->debug("Sample arrays have length {}",numSamples);
+    console->debug("Sample arrays have length {}", numSamples);
 
     //Fill vector of samples with training images
     Mat samples = Mat::zeros(numSamples, 3, CV_32FC1);
@@ -163,14 +163,14 @@ bool trainExpectationMaximizationModel(Mat rawTrainingImages[], Mat labelledTrai
         testPixel.ptr<uchar>(0)[2] = (int) classificationColor[i][2];
         Mat testPixelVector = Mat::zeros(testPixel.cols, 3, CV_32FC1);
         convertToSampleArray(testPixel, testPixelVector);
-        SPDLOG_TRACE(console,"resultToIndex on classifcationColor #{}",i);
+        SPDLOG_TRACE(console, "resultToIndex on classifcationColor #{}", i);
         int result = em.predict(testPixelVector.row(0))[1];
         resultToIndex[result] = i;
-        console->info("Result for classificationColor #{} was {}",i,result);
+        console->info("Result for classificationColor #{} was {}", i, result);
     }
 
     for (int i = 0; i < no_of_clusters; i++) {
-       console->debug("resultToIndex {} is {}",i,resultToIndex[i]);
+        console->debug("resultToIndex {} is {}", i, resultToIndex[i]);
     }
     console->debug("resultToIndex map constructed");
     return (trainOutcome);

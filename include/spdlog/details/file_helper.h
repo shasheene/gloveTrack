@@ -37,132 +37,115 @@
 
 
 
-namespace spdlog
-{
-namespace details
-{
+namespace spdlog {
+    namespace details {
 
-class file_helper
-{
-public:
-    const int open_tries = 5;
-    const int open_interval = 10;
+        class file_helper {
+        public:
+            const int open_tries = 5;
+            const int open_interval = 10;
 
-    explicit file_helper(bool force_flush) :
-        _fd(nullptr),
-        _force_flush(force_flush)
-    {}
+            explicit file_helper(bool force_flush) :
+            _fd(nullptr),
+            _force_flush(force_flush) {
+            }
 
-    file_helper(const file_helper&) = delete;
-    file_helper& operator=(const file_helper&) = delete;
+            file_helper(const file_helper&) = delete;
+            file_helper& operator=(const file_helper&) = delete;
 
-    ~file_helper()
-    {
-        close();
+            ~file_helper() {
+                close();
+            }
+
+            void open(const std::string& fname, bool truncate = false) {
+
+                close();
+                const char* mode = truncate ? "wb" : "ab";
+                _filename = fname;
+                for (int tries = 0; tries < open_tries; ++tries) {
+                    if (!os::fopen_s(&_fd, fname, mode))
+                        return;
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(open_interval));
+                }
+
+                throw spdlog_ex("Failed opening file " + fname + " for writing");
+            }
+
+            void reopen(bool truncate) {
+                if (_filename.empty())
+                    throw spdlog_ex("Failed re opening file - was not opened before");
+                open(_filename, truncate);
+
+            }
+
+            void flush() {
+                std::fflush(_fd);
+            }
+
+            void close() {
+                if (_fd) {
+                    std::fclose(_fd);
+                    _fd = nullptr;
+                }
+            }
+
+            void write(const log_msg& msg) {
+
+                size_t size = msg.formatted.size();
+                auto data = msg.formatted.data();
+                if (std::fwrite(data, 1, size, _fd) != size)
+                    throw spdlog_ex("Failed writing to file " + _filename);
+
+                if (_force_flush)
+                    std::fflush(_fd);
+
+            }
+
+            long size() {
+                if (!_fd)
+                    throw spdlog_ex("Cannot use size() on closed file " + _filename);
+
+                auto pos = ftell(_fd);
+                if (fseek(_fd, 0, SEEK_END) != 0)
+                    throw spdlog_ex("fseek failed on file " + _filename);
+
+                auto size = ftell(_fd);
+
+                if (fseek(_fd, pos, SEEK_SET) != 0)
+                    throw spdlog_ex("fseek failed on file " + _filename);
+
+                if (size == -1)
+                    throw spdlog_ex("ftell failed on file " + _filename);
+
+
+                return size;
+
+
+            }
+
+            const std::string& filename() const {
+                return _filename;
+            }
+
+            static bool file_exists(const std::string& name) {
+                FILE* file;
+                if (!os::fopen_s(&file, name.c_str(), "r")) {
+                    fclose(file);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+
+
+        private:
+            FILE* _fd;
+            std::string _filename;
+            bool _force_flush;
+
+
+        };
     }
-
-
-    void open(const std::string& fname, bool truncate = false)
-    {
-
-        close();
-        const char* mode = truncate ? "wb" : "ab";
-        _filename = fname;
-        for (int tries = 0; tries < open_tries; ++tries)
-        {
-            if (!os::fopen_s(&_fd, fname, mode))
-                return;
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(open_interval));
-        }
-
-        throw spdlog_ex("Failed opening file " + fname + " for writing");
-    }
-
-    void reopen(bool truncate)
-    {
-        if (_filename.empty())
-            throw spdlog_ex("Failed re opening file - was not opened before");
-        open(_filename, truncate);
-
-    }
-
-    void flush() {
-        std::fflush(_fd);
-    }
-
-    void close()
-    {
-        if (_fd)
-        {
-            std::fclose(_fd);
-            _fd = nullptr;
-        }
-    }
-
-    void write(const log_msg& msg)
-    {
-
-        size_t size = msg.formatted.size();
-        auto data = msg.formatted.data();
-        if (std::fwrite(data, 1, size, _fd) != size)
-            throw spdlog_ex("Failed writing to file " + _filename);
-
-        if (_force_flush)
-            std::fflush(_fd);
-
-    }
-
-    long size()
-    {
-        if (!_fd)
-            throw spdlog_ex("Cannot use size() on closed file " + _filename);
-
-        auto pos = ftell(_fd);
-        if (fseek(_fd, 0, SEEK_END) != 0)
-            throw spdlog_ex("fseek failed on file " + _filename);
-
-        auto size = ftell(_fd);
-
-        if(fseek(_fd, pos, SEEK_SET) !=0)
-            throw spdlog_ex("fseek failed on file " + _filename);
-
-        if (size == -1)
-            throw spdlog_ex("ftell failed on file " + _filename);
-
-
-        return size;
-
-
-    }
-
-    const std::string& filename() const
-    {
-        return _filename;
-    }
-
-    static bool file_exists(const std::string& name)
-    {
-        FILE* file;
-        if (!os::fopen_s(&file, name.c_str(), "r"))
-        {
-            fclose(file);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-
-
-private:
-    FILE* _fd;
-    std::string _filename;
-    bool _force_flush;
-
-
-};
-}
 }

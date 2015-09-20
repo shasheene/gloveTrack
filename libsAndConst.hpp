@@ -26,8 +26,8 @@ extern Mat frame; // Entire camera frame
 
 
 #define NUMGLOVECOLORS 9 //8 unique colors, and index 0 being temp backgound removal
-extern Scalar classificationColor[];//camera image classification buckets
-extern Scalar blenderGloveColor[];//color buckets of rendered blender glove images (same indexing as above)
+extern Scalar classificationColor[]; //camera image classification buckets
+extern Scalar blenderGloveColor[]; //color buckets of rendered blender glove images (same indexing as above)
 extern int classificationArrayIndex; //Used for calibration mode mouse.cpp events
 
 //brightness and constrast changes
@@ -36,6 +36,6 @@ extern int classificationArrayIndex; //Used for calibration mode mouse.cpp event
 
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 
-extern Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame);//same size image
+extern Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame); //same size image
 
 #endif

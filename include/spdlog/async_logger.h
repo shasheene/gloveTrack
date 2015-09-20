@@ -41,49 +41,46 @@
 #include "spdlog.h"
 
 
-namespace spdlog
-{
+namespace spdlog {
 
-namespace details
-{
-class async_log_helper;
-}
+    namespace details {
+        class async_log_helper;
+    }
 
-class async_logger :public logger
-{
-public:
-    template<class It>
-    async_logger(const std::string& name,
-                 const It& begin,
-                 const It& end,
-                 size_t queue_size,
-                 const async_overflow_policy overflow_policy =  async_overflow_policy::block_retry,
-                 const std::function<void()>& worker_warmup_cb = nullptr,
-                 const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
+    class async_logger : public logger {
+    public:
+        template<class It>
+        async_logger(const std::string& name,
+                const It& begin,
+                const It& end,
+                size_t queue_size,
+                const async_overflow_policy overflow_policy = async_overflow_policy::block_retry,
+                const std::function<void()>& worker_warmup_cb = nullptr,
+                const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
 
-    async_logger(const std::string& logger_name,
-                 sinks_init_list sinks,
-                 size_t queue_size,
-                 const async_overflow_policy overflow_policy = async_overflow_policy::block_retry,
-                 const std::function<void()>& worker_warmup_cb = nullptr,
-                 const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
+        async_logger(const std::string& logger_name,
+                sinks_init_list sinks,
+                size_t queue_size,
+                const async_overflow_policy overflow_policy = async_overflow_policy::block_retry,
+                const std::function<void()>& worker_warmup_cb = nullptr,
+                const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
 
-    async_logger(const std::string& logger_name,
-                 sink_ptr single_sink,
-                 size_t queue_size,
-                 const async_overflow_policy overflow_policy =  async_overflow_policy::block_retry,
-                 const std::function<void()>& worker_warmup_cb = nullptr,
-                 const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
+        async_logger(const std::string& logger_name,
+                sink_ptr single_sink,
+                size_t queue_size,
+                const async_overflow_policy overflow_policy = async_overflow_policy::block_retry,
+                const std::function<void()>& worker_warmup_cb = nullptr,
+                const std::chrono::milliseconds& flush_interval_ms = std::chrono::milliseconds::zero());
 
 
-protected:
-    void _log_msg(details::log_msg& msg) override;
-    void _set_formatter(spdlog::formatter_ptr msg_formatter) override;
-    void _set_pattern(const std::string& pattern) override;
+    protected:
+        void _log_msg(details::log_msg& msg) override;
+        void _set_formatter(spdlog::formatter_ptr msg_formatter) override;
+        void _set_pattern(const std::string& pattern) override;
 
-private:
-    std::unique_ptr<details::async_log_helper> _async_log_helper;
-};
+    private:
+        std::unique_ptr<details::async_log_helper> _async_log_helper;
+    };
 }
 
 
