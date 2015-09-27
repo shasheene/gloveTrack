@@ -11,19 +11,12 @@
 
 using namespace cv;
 
-
 //globals set in gloveTrack.cpp. Will remove at some point
-extern int verbosity;
 extern std::vector<Mat> comparisonImages;
-
-extern bool realTimeMode;
-extern int videoCaptureDeviceNumber;
-extern bool slowMode;
 
 extern int thresholdBrightness;
 
 extern Mat frame; // Entire camera frame
-
 
 #define NUMGLOVECOLORS 9 //8 unique colors, and index 0 being temp backgound removal
 extern Scalar classificationColor[]; //camera image classification buckets

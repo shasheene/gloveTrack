@@ -8,9 +8,7 @@ int numImagesTaken = 0;
 //Globals (declared extern'd in libsAndConst.h and defined mostly in main)
 std::vector<Mat> comparisonImages;
 std::vector<Mat> testingImages;
-double image_width, image_height;
 int thresholdBrightness;
-
 
 Mat frame;
 
@@ -21,11 +19,7 @@ Scalar blenderGloveColor[NUMGLOVECOLORS];
 
 //Debug and helper function
 bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber);
-void drawCurrentClassificationColors(Mat &targetFrame); //draws vertical squares representing classifcation color
-bool realTimeMode = true;
-int videoCaptureDeviceNumber = 0;
-
-bool slowMode; //extra info above debug mode
+void drawCurrentClassificationColors(Mat &targetFrame, int image_width, int image_height); //draws vertical squares representing classifcation color
 
 int main(int argc, char** argv) {
     //In other functions, initially get a logger reference with "spdlog::get("console")"
@@ -33,7 +27,7 @@ int main(int argc, char** argv) {
     console->info("gloveTrack");
 
     struct arguments args;
-    args.interactiveMode = false;
+    args.headlessMode = true;
     args.videoCaptureDevice = 0;
     args.numGloveColors = 0;
     args.processingWidth = 25;
@@ -42,6 +36,9 @@ int main(int argc, char** argv) {
     args.normalizedHeight = 25;
     args.displayWidth = 75;
     args.displayHeight = 75;
+    args.trainingSetManifest = "trainingSet/manifest.json";
+    args.evaluationSetManifest = "evaluationSet/manifest.json";
+    args.poseSetManifest = "poseSet/manifest.json";
 
     parseCommandLineArgs(argc, argv, args);
     std::string trainingImagePath("db/blenderImg/");
@@ -82,7 +79,7 @@ int main(int argc, char** argv) {
         classificationColor[7] = Scalar(90, 106, 253, 0);//pink
         classificationColor[8] = Scalar(137, 101, 171, 0);//purple
      */
-    if (realTimeMode == false) {
+    if (args.headlessMode == false) {
         //Size of reduced dimensionality image
         int databaseImageWidth = 50;
         int databaseImageHeight = 50;
@@ -149,7 +146,7 @@ int main(int argc, char** argv) {
         console->info("Attempting to open {}", video);
         captureDevice.open(video);
         if (!captureDevice.isOpened()) {
-            console->info("Unable to open video capture device {} too. Quitting", videoCaptureDeviceNumber);
+            console->info("Unable to open video capture device {} too. Quitting", args.videoCaptureDevice);
             exit(1);
         }
 
@@ -157,7 +154,7 @@ int main(int argc, char** argv) {
         EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
         int resultToIndex[NUMGLOVECOLORS]; //initialized in training function
 
-        console->info("Loading expectation maximization training set", videoCaptureDeviceNumber);
+        console->info("Loading expectation maximization training set", args.videoCaptureDevice);
         Mat rawTrainingImages[1];
         Mat labelledTrainingImages[1]; //colors classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
 
@@ -174,11 +171,11 @@ int main(int argc, char** argv) {
         //rawTrainingImages[1] = imread("../db/test/miniC.png",1);
         //labelledTrainingImages[1] = imread("../db/test/miniCLabelled.png",1);
 
-        console->info("Training expectation maximization model", videoCaptureDeviceNumber);
+        console->info("Training expectation maximization model");
         trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
 
-        image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
-        image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
+        int image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
+        int image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
 
         //Size of reduced dimensionality image
         int databaseImageWidth = 50;
@@ -193,13 +190,13 @@ int main(int argc, char** argv) {
 
             //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
             Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args);
-
+/*
             if (slowMode == true) {
                 //draw on screen (later debug only)
                 Rect currentFrameScreenLocation(Point(40, 40), frame.size());
                 frame.copyTo(frame(currentFrameScreenLocation));
             }
-
+*/
             //Second run over image for faster lookup later. (May merge with cleanup)
             Rect shrunkFrameScreenLocation(Point(0, 0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
             shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
@@ -212,7 +209,7 @@ int main(int argc, char** argv) {
               }*/
 
 
-            //drawCurrentClassificationColors(frame);
+            //drawCurrentClassificationColors(frame, image_width, image_height);
 
 
             //READ KEYBOARD
@@ -259,7 +256,7 @@ int main(int argc, char** argv) {
 
 //for debug:
 
-void drawCurrentClassificationColors(Mat &frame) {
+void drawCurrentClassificationColors(Mat &frame, int image_width, int image_height) {
     Rect classificationRect = Rect(image_width - 25, (image_height / 20.0), 25, 45); //area to output classification colors
 
     //draw little square to show which color is being calibrated

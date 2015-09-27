@@ -19,7 +19,7 @@
  * 
  */
 struct arguments {
-    bool interactiveMode;
+    bool headlessMode;
     int videoCaptureDevice;
     int numGloveColors;
 
@@ -31,6 +31,11 @@ struct arguments {
 
     int displayWidth;
     int displayHeight;
+    
+    char* inputVideo;
+    char* trainingSetManifest;
+    char* evaluationSetManifest;
+    char* poseSetManifest;
 };
 
 void parseCommandLineArgs(int argc, char** argv, struct arguments &args);
