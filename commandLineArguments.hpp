@@ -32,10 +32,12 @@ struct arguments {
     int displayWidth;
     int displayHeight;
     
-    char* inputVideo;
     char* trainingSetManifest;
     char* evaluationSetManifest;
-    char* poseSetManifest;
+    char* searchSetManifest;
+    char* inputVideoFile;
+    
+    bool saveNormalizedImages;
 };
 
 void parseCommandLineArgs(int argc, char** argv, struct arguments &args);

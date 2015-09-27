@@ -20,6 +20,7 @@
 #include "lookupDatabase.hpp"
 #include "commandLineArguments.hpp"
 #include "mouse.hpp"
+#include "manifest.hpp"
 
 //For GNU getopt command line arg parsing
 // Maybe replace with c++ library
@@ -27,5 +28,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+/**
+ *  Pass in a populated argument struct
+ * 
+ * @param args
+ * @return 
+ */
+int runMain(struct arguments args);
 
 #endif

@@ -18,7 +18,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 0},
-        {"headless-mode", required_argument, 0, 0},
+        {"headless-mode", no_argument, 0, 0},
+        {"save-normalized-images", no_argument, 0, 's'},
         {"training-set-manifest", required_argument, 0, 0},
         {"evaluation-set-manifest", required_argument, 0, 0},
         {"pose-set-manifest", required_argument, 0, 0},
@@ -57,7 +58,9 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 } else if (0 == strcmp("evaluation-set-manifest", long_option)) {
                     args.evaluationSetManifest = strdup(optarg);
                 } else if (0 == strcmp("pose-set-manifest", long_option)) {
-                    args.poseSetManifest = strdup(optarg);
+                    args.searchSetManifest = strdup(optarg);
+                } else if (0 == strcmp("input-video", long_option)) {
+                    args.inputVideoFile = strdup(optarg);
                 } else if (0 == strcmp("normalized-width", long_option)) {
                     args.normalizedWidth = atoi(optarg);
                 } else if (0 == strcmp("normalized-height", long_option)) {
@@ -72,6 +75,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                     args.displayHeight = atoi(optarg);
                 } else if (0 == strcmp("capture-device", long_option)) {
                     args.videoCaptureDevice = atoi(optarg);
+                } else if (0 == strcmp("save-normalized-images", long_option)) {
+                    args.saveNormalizedImages = true;
                 }
                 break;
 
@@ -97,6 +102,9 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
 
                 std::cout << "      --display-width=SIZE            Resize to width before display to user (interactive mode only)" << std::endl;
                 std::cout << "      --display-height=SIZE           Resize to height before display to user " << std::endl;
+                std::cout << std::endl;
+
+                std::cout << "   -s,--save-normalized-images        Save normalized image (slow)" << std::endl;
 
                 std::cout << "      --version                       Print version information" << std::endl;
 
@@ -104,7 +112,7 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 break;
             case 'i':
                 //fix this
-                args.inputVideo = optarg;
+                args.inputVideoFile = strdup(optarg);
                 break;
             case '?':
                 break;

@@ -3,8 +3,7 @@
 //see libsAndConst for extern'd global variables.
 
 void mouseCallback(int event, int x, int y, int flags, void* userdata) {
-    auto console = spdlog::stdout_logger_mt("console");
-
+    auto console = spdlog::get("console");
 
     if (event == EVENT_LBUTTONDOWN) {
 

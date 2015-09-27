@@ -16,7 +16,7 @@ include_directories("$(PROJECT_BINARY_DIR)")
 #find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIR})
 
-add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp commandLineArguments.cpp)
+add_executable(gloveTrack gloveTrack.cpp isolateGlove.cpp lookupDatabase.cpp mouse.cpp commandLineArguments.cpp manifest.cpp)
 target_link_libraries( gloveTrack ${OpenCV_LIBS})
 
 # Ubuntu 12.04 repositories only have CMake 2.8.12.2. Latter versions have explicit
