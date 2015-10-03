@@ -21,7 +21,7 @@ target_link_libraries( gloveTrack ${OpenCV_LIBS})
 
 # Ubuntu 12.04 repositories only have CMake 2.8.12.2. Latter versions have explicit
 # support to force C++11 compilation. Not ideal, but gets the job done.
-list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs")
+list( APPEND CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS} -g -ftest-coverage -fprofile-arcs -lpthread")
 
 # Copy database directory (containing training and testing image sets) to build/ directory
 add_custom_command(TARGET gloveTrack POST_BUILD

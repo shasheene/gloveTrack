@@ -23,6 +23,10 @@ struct arguments {
     int videoCaptureDevice;
     int numGloveColors;
 
+    int preCropWidth;
+    int preCropHeight;
+
+    
     int processingWidth;
     int processingHeight;
 

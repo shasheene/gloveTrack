@@ -4,62 +4,51 @@
 Mat normalizeQueryImage(Mat& unprocessedCameraFrame, EM& trainedEM,
         int (&resultToIndex)[NUMGLOVECOLORS], struct arguments args) {
     Mat frame = unprocessedCameraFrame;
-    //We shrink the image because 2000x2000 from phone camera is far to big
-    //frame = fastReduceDimensions(frame, 500, 500);//shrink to speedup other algorithm
+
+    //A camera input of 2000x2000 needs more cycles to process, so shrink for performance closer to real-time on target systems
+    Mat processingFrame = Mat::zeros(args.processingWidth, args.processingHeight, CV_8UC3);
+    resize(frame, processingFrame, processingFrame.size(), 0, 0, INTER_LINEAR);
+    frame = processingFrame;
+
+    SPDLOG_TRACE(spdlog::get("console"), "Bilateral filter to smooth sensor noise (by slight image bluring)");
+    Mat filtered = Mat::zeros(processingFrame.rows, processingFrame.cols, CV_8UC3);
+    SPDLOG_TRACE(spdlog::get("console"), "bilateral filter complete");
+    // Bilateral filter blur images slightly. Used to smooth over noise. Takes filtersize, sigma color parameters
+    bilateralFilter(frame, filtered, 50, 5, BORDER_DEFAULT);
+    frame = filtered;
 
     //CV EM requires array of "samples" (each sample is a pixel RGB value)
     SPDLOG_TRACE(spdlog::get("console"), "\"Flattening\" input image into array of samples (pixels) for further processing");
-
-    Mat shrunkFrame = Mat::zeros(args.processingWidth, args.processingHeight, CV_8UC3);
-    resize(frame, shrunkFrame, shrunkFrame.size(), 0, 0, INTER_LINEAR);
-
-    //Mat sampleArray = Mat::zeros( shrunkFrame.rows * shrunkFrame.cols, 3, CV_32FC1 );
-    //convertToSampleArray(shrunkFrame, sampleArray);
-
-
-    //if (verbosity>0)
-
-    SPDLOG_TRACE(spdlog::get("console"), "Bilateral filter to smooth sensor noise (by slight image bluring)");
-    Mat filtered = Mat::zeros(shrunkFrame.rows, shrunkFrame.cols, CV_8UC3);
-    SPDLOG_TRACE(spdlog::get("console"), "bilateral filter complete");
-    bilateralFilter(shrunkFrame, filtered, 50, 5, BORDER_DEFAULT); //filtersize, sigma color
-    frame = filtered;
-    /*  Mat outputFrame = Mat::zeros(OUTPUT_WIDTH,OUTPUT_HEIGHT,CV_8UC3);
-    resize(filtered,outputFrame,outputFrame.size(),0,0,INTER_LINEAR);
-    return outputFrame;*/
-
-    //if (verbosity>0)
-    //std::cout << "Cropping image using several interations of meanshift clustering algorithm\n";
-
-    SPDLOG_TRACE(spdlog::get("console"), "Expectation Maximization prediction on every pixel to classify the colors as either background or one of the glove colors");
-
     Mat sampleArray = Mat::zeros(frame.rows * frame.cols, 3, CV_32FC1);
     convertToSampleArray(frame, sampleArray);
-
-    Mat returnFrame = Mat::zeros(frame.rows, frame.cols, CV_8UC3);
-    classifyColors(frame, sampleArray, returnFrame, trainedEM, resultToIndex);
-
-    Mat cropped = meanShiftCrop(returnFrame, 2000, 1);
-
-    /*
-    Rect gloveBoundingBox = fastLocateGlove(returnFrame, 60);
-    //rectangle(returnFrame, gloveBoundingBox, Scalar(255,255,255)); //Draw rectangle represententing tracked location
-    returnFrame = returnFrame(gloveBoundingBox).clone(); //CROP
-
-
-    //Shrink then blow up
-    Mat smallFrame = Mat::zeros(args.normalizedWidth, args.normalizedHeight, CV_8UC3);
-    resize(returnFrame, smallFrame, smallFrame.size(), 0, 0, INTER_LINEAR);
-    Mat outputFrame = Mat::zeros(args.displayWidth, args.displayHeight, CV_8UC3);
-    resize(smallFrame, outputFrame, outputFrame.size(), 0, 0, INTER_LINEAR);
+    Mat classifiedFrame = Mat::zeros(frame.rows, frame.cols, CV_8UC3);
+    SPDLOG_TRACE(spdlog::get("console"), "Expectation Maximization prediction on every pixel to classify the colors as either background or one of the glove colors");
+    classifyColors(frame, sampleArray, classifiedFrame, trainedEM, resultToIndex);
     SPDLOG_TRACE(spdlog::get("console"), "EM Classification Complete");
-     */
-    //returnFrame = fastReduceDimensions(returnFrame, 10);//shrink
-    Mat outputFrame = Mat::zeros(args.displayWidth, args.displayHeight, CV_8UC3);
-    if (cropped.cols > 10 && cropped.rows > 10) {
-        resize(cropped, outputFrame, outputFrame.size(), 0, 0, INTER_LINEAR);
+    frame = classifiedFrame;
+
+    Mat preCropFrame = Mat::zeros(args.preCropWidth, args.preCropHeight, CV_8UC3);
+    resize(frame, preCropFrame, preCropFrame.size(), 0, 0, INTER_LINEAR);
+    Mat croppedFrame = meanShiftCrop(preCropFrame, 20, 0, args);
+    frame = croppedFrame;
+
+    //Draw rectangle represententing quick-and-dirty representation of tracked location
+    //Rect gloveBoundingBox = fastLocateGlove(returnFrame, 60);
+    //rectangle(returnFrame, gloveBoundingBox, Scalar(255,255,255));
+
+    // Resize it to search query (resize will most likely shrink image)
+    Mat normalizedFrame = Mat::zeros(args.normalizedWidth, args.normalizedHeight, CV_8UC3);
+    resize(frame, normalizedFrame, normalizedFrame.size(), 0, 0, INTER_LINEAR);
+    frame = normalizedFrame;
+
+    //If in interactive mode, stretch image for display/demonstration purposes
+    if (args.headlessMode == false) {
+        Mat displayFrame = Mat::zeros(args.displayWidth, args.displayHeight, CV_8UC3);
+        resize(frame, displayFrame, displayFrame.size(), 0, 0, INTER_LINEAR);
+        frame = displayFrame;
     }
-    return (outputFrame);
+
+    return (frame);
 }
 
 void classifyColors(Mat testImage, Mat testImageSampleArray, Mat& outputArray, EM& em, int (&resultToIndex)[NUMGLOVECOLORS]) {
@@ -260,11 +249,41 @@ double euclidianDist(int x1, int y1, int x2, int y2) {
 
 }
 
+std::vector<double> calcStandardDev(int populationX, int populationY, std::vector<Point> coordsOfValidPixels) {
+    //auto console = spdlog::get("console");
+    //console->set_level(spdlog::level::debug);
+
+    double summationX = 0;
+    double summationY = 0;
+    for (int i = 0; i < coordsOfValidPixels.size(); i++) {
+        summationX += pow(coordsOfValidPixels.at(i).x - populationX, 2);
+        summationY += pow(coordsOfValidPixels.at(i).y - populationY, 2);
+        ;
+    }
+    std::vector<double> toReturn;
+    double divisor = coordsOfValidPixels.size() - 1;
+    double xStdDev = sqrt(summationX / divisor);
+    toReturn.push_back(xStdDev);
+    double yStdDev = sqrt(summationY / divisor);
+    toReturn.push_back(yStdDev);
+
+    return (toReturn);
+}
+
 /**
  *  Cropping is a vital step in normalizing the image for this algorithm.
  *  We crop our frame in a reproducable manner using the meanShift algorithm.
  *
  * As in the research paper, this function uses a a uniform distribution as the 'kernel'.
+ * 
+ * We use a rectangle (rather say, a radius) for bandwidth.
+ * Computation is much faster when not  Euclidean distance (computing squares and sqrt),
+ * and for a number of reasons given the update strategy is based on the standard deviation,
+ * we can update each point's x and y independently allow perfect crops even when the pixels of
+ * interest are nested in a corner.
+ * 
+ * Once we have converged on a crop, we may have to move the pixels (nested in the corner) problem
+ * to make the normalized image work
  *
  *
  * @param frame
@@ -273,91 +292,113 @@ double euclidianDist(int x1, int y1, int x2, int y2) {
  * @param bandwidth - initially the size of the frame
  * @return
  */
-Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance) {
+Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance, struct arguments args) {
+    auto console = spdlog::get("console");
+    //console->set_level(spdlog::level::debug);
+
     int cols = frame.cols;
     int rows = frame.rows;
     int channels = frame.channels();
 
-    int currX = (int) cols / (3 * 2);
-    int currY = (int) rows / 2;
 
+    //Initially, we consider the  average (x,y) co-ordinates being the centre of the screen
+    int currX = (int) cols / 2;
+    int currY = (int) rows / 2;
     int prevX = 0;
     int prevY = 0;
 
-    //initial bandwidth should be entire frame
-    int bandwidth = rows + (cols / 3);
+    /* The meanshift "bandwidth" (or region of considered pixels) is initially the entire input image.
+     * Every iteration, this gets progressively smaller based on the distribution of pixels within
+     * the rectangle. This means the window of considered pixels cuts off misclassified pixels
+     * (due to image noise) in a reasonable manner for an image that contains a single concentration
+     * of classified pixels (a glove).
+     * 
+     * Once the meanshift algorithm has converged (found the average (x,y) co-ordinates of the pixels,
+     * which corresponds to the central point glove which is the highest density within the bandwidth),
+     * the bandwidthRect is the suggested crop for normalization.
+     * 
+     * Due to the existence of (literal) corner cases (glove in the corner of the image),
+     * we initially make the bandwidth rectangle larger than the input frame by a reasonable margin,
+     * (which initially means negative co-ordinates for top left corner), and then crop the resulting
+     * image based on that.
+     */
+    const int bwInitialHeight = rows;
+    const int bwInitialWidth = cols;
+    const int bwInitialX = 0;
+    const int bwInitialY = 0;
+    Rect bandwidthRect = Rect(bwInitialX, bwInitialY, bwInitialWidth, bwInitialHeight);
 
     int currentIter = 0;
-    while ((currentIter < maximumIterations) && (euclidianDist(currX, currY, prevX, prevY) > minimumDistance)) {
+    std::vector<double> standardDev;
+    while ((euclidianDist(currX, currY, prevX, prevY) > minimumDistance)
+            /*&& ((standardDev.at(0) <3) && (standardDev.at(1) < 3)*/) {
+        // We keep track of every valid pixel to calculate the standard deviation (used each iteration to update bandwidth update)
+        std::vector<Point> coordsOfValidPixels;
+        //console->debug("Bandwidth rectangle is {}. Current x,y is ({},{})", bandwidthRect, currX, currY);
+
         double runningTotalX = 0;
         double runningTotalY = 0;
         int numX = 0;
         int numY = 0;
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols * channels; j = j + channels) {//Columns are 3-channel
+                Point currentPixel = Point((int) (j / channels), i);
+
                 // Only count if non-black pixel
                 if ((frame.ptr<uchar>(i)[j] != 0) && (frame.ptr<uchar>(i)[j + 1] != 0) && (frame.ptr<uchar>(i)[j + 2] != 0)) {
-                    double euclidianDistance = euclidianDist(currX, currY, i, j);
                     // If it's within the radius
-                    if (euclidianDistance < bandwidth) {
-                        runningTotalX += i;
-                        runningTotalY += (int) (j / channels);
-                        numX++;
-                        numY++;
+                    if (bandwidthRect.contains(currentPixel)) {
+                        //console->debug("Adding pixel to {}",currentPixel);
+                        runningTotalX += (int) (j / channels);
+                        runningTotalY += i;
+                        coordsOfValidPixels.push_back(currentPixel);
                     }
                 }
             }
         }
+
         prevX = currX;
         prevY = currY;
-#ifdef SPDLOG_TRACE_ON
-#endif
-        SPDLOG_TRACE(spdlog::get("console"), "runningTotalX {}, runningTotalY {}", runningTotalX, runningTotalY);
-        currX = (int) (runningTotalX / numX);
-        currY = (int) (runningTotalY / numY);
-        bandwidth = (int) (bandwidth * 0.99);
-        currentIter++;
-    }
+        // Logging stddev calculation running total is VERY verbose
+        //SPDLOG_TRACE(spdlog::get("console"), "runningTotalX {}, runningTotalY {}", runningTotalX, runningTotalY);
+        currX = (int) (runningTotalX / coordsOfValidPixels.size());
+        currY = (int) (runningTotalY / coordsOfValidPixels.size());
 
-    //Rectangle may have negative co-ordinates (hand is in top left corner)
-    int topLeftX = currX - (bandwidth / 2);
-    int topLeftY = currY - (bandwidth / 2);
-    int bottomRightX = currX + (bandwidth / 2);
-    int bottomRightY = currY + (bandwidth / 2);
+        standardDev = calcStandardDev(currX, currY, coordsOfValidPixels);
+        console->debug("Standard dev is {} {}. Mean is {}, {}", standardDev.at(0), standardDev.at(1), currX, currY);
+        console->debug("bandwidth rect was  {}", bandwidthRect);
 
-    int croppedImgCols = bottomRightX - topLeftX;
-    int croppedImgRows = bottomRightY - topLeftY;
-
-    // debug parameters during fine tuning
-    spdlog::get("console")->debug("{},{} and {},{}", topLeftX, topLeftY, bottomRightX, bottomRightY);
-    spdlog::get("console")->debug("size {},{}", croppedImgRows, croppedImgCols);
-
-    //quick way to align to colour channel
-    while ((topLeftY % 3) != 0) {
-        topLeftY++;
-    }
-    while ((topLeftX % 3) != 0) {
-        topLeftX++;
-    }
-
-    int cropRowCount = 0;
-    int cropColCount = 0;
-    // Rows x columns
-    Mat toReturn = Mat::zeros(croppedImgRows, croppedImgCols, CV_8UC3);
-    for (int i = topLeftY; i < bottomRightY; i++) {
-        for (int j = topLeftX; j < bottomRightX * channels; j = j + channels) {
-            //if valid
-            if ((i >= 0 && i < rows) && (j >= 0 && j < (cols * channels))) {
-                for (int k = 0; k < channels; k++) {
-                    toReturn.ptr<uchar>(cropRowCount)[cropColCount + k] = frame.ptr<uchar>(i)[j + k];
-                }
-            }
-            cropColCount += channels;
+        ///We update the 'bandwidth' rectangle for the next iteration of meanshift (and once converged, cropping rectangle)
+        // We crop using a multiple of the standard deviation in a rectangle around the mean (exact multiplier discovered experimentally)
+        float multiplier = 2;
+        int x1 = currX - multiplier * standardDev.at(0);
+        if (x1 <= 0) {
+            x1 = 0;
         }
-        cropColCount = 0;
-        cropRowCount++;
+
+        int y1 = currY - multiplier * standardDev.at(1);
+        if (y1 <= 0) {
+            y1 = 0;
+        }
+
+        //OpenCV define Rect size using height and width, not absolute x2 and y2 values
+        //We want right of mean by same amount, hence 2 stddev from top left corner.
+        int width = multiplier * 2 * standardDev.at(0);
+        if (width >= (args.preCropWidth - x1)) {
+            width = args.preCropWidth - x1;
+        }
+
+        int height = multiplier * 2 * standardDev.at(1);
+        if (height >= (args.preCropHeight - x1)) {
+            height = args.preCropHeight - y1;
+        }
+
+        bandwidthRect = Rect(x1, y1, width, height);
+        console->debug("Rect is {}", bandwidthRect);
     }
-    return (toReturn);
+
+    Mat returnFrame = frame(bandwidthRect);
+    return returnFrame;
 }
 
 /**

@@ -24,10 +24,15 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         {"evaluation-set-manifest", required_argument, 0, 0},
         {"pose-set-manifest", required_argument, 0, 0},
 
-        {"normalized-width", required_argument, 0, 0},
-        {"normalized-height", required_argument, 0, 0},
+        {"precrop-width", required_argument, 0, 0},
+        {"precrop-height", required_argument, 0, 0},
+
         {"processing-width", required_argument, 0, 0},
         {"processing-height", required_argument, 0, 0},
+
+        {"normalized-width", required_argument, 0, 0},
+        {"normalized-height", required_argument, 0, 0},
+
         {"display-width", required_argument, 0, 0},
         {"display-height", required_argument, 0, 0},
 
@@ -61,14 +66,18 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                     args.searchSetManifest = strdup(optarg);
                 } else if (0 == strcmp("input-video", long_option)) {
                     args.inputVideoFile = strdup(optarg);
-                } else if (0 == strcmp("normalized-width", long_option)) {
-                    args.normalizedWidth = atoi(optarg);
-                } else if (0 == strcmp("normalized-height", long_option)) {
-                    args.normalizedHeight = atoi(optarg);
                 } else if (0 == strcmp("processing-width", long_option)) {
                     args.processingWidth = atoi(optarg);
                 } else if (0 == strcmp("processing-height", long_option)) {
                     args.processingHeight = atoi(optarg);
+                } else if (0 == strcmp("precrop-width", long_option)) {
+                    args.preCropWidth = atoi(optarg);
+                } else if (0 == strcmp("precrop-height", long_option)) {
+                    args.preCropHeight = atoi(optarg);
+                } else if (0 == strcmp("normalized-width", long_option)) {
+                    args.normalizedWidth = atoi(optarg);
+                } else if (0 == strcmp("normalized-height", long_option)) {
+                    args.normalizedHeight = atoi(optarg);
                 } else if (0 == strcmp("display-width", long_option)) {
                     args.displayWidth = atoi(optarg);
                 } else if (0 == strcmp("display-height", long_option)) {
@@ -94,11 +103,14 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 std::cout << "      --evaluation-set-manifest=FILE  Manifest file detailing the raw images for offline (non live-camera) processing, for demonstration and development (Cannot be used with -c)" << std::endl;
                 std::cout << "      --pose-set-manifest=PATH        Manifest file detailing the pre-computed searching set" << std::endl;
 
-                std::cout << "      --normalized-width=SIZE         Width of output image after processing" << std::endl;
-                std::cout << "      --normalized-height=SIZE        Height of output image after processing" << std::endl;
+                std::cout << "      --processing-width=SIZE         Resize to width after cropping for any further processing (for development and testing)" << std::endl;
+                std::cout << "      --processing-height=SIZE        Resize to height after cropping for any further processing" << std::endl;
 
-                std::cout << "      --processing-width=SIZE         Resize to width before further processing (input raw camera frames potentially larger than 3840x2160 resolution)" << std::endl;
-                std::cout << "      --processing-height=SIZE        Resize to height before further processing " << std::endl;
+                std::cout << "      --precrop-width=SIZE            Resize to width before color classification and cropping (input raw camera frames potentially larger than 3840x2160 resolution)" << std::endl;
+                std::cout << "      --precrop-height=SIZE           Resize to height before color classification and cropping " << std::endl;
+
+                std::cout << "      --normalized-width=SIZE         Width of output image after processing (the normalized search query size)" << std::endl;
+                std::cout << "      --normalized-height=SIZE        Height of output image after processing" << std::endl;
 
                 std::cout << "      --display-width=SIZE            Resize to width before display to user (interactive mode only)" << std::endl;
                 std::cout << "      --display-height=SIZE           Resize to height before display to user " << std::endl;

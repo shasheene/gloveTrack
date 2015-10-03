@@ -32,12 +32,19 @@ int main(int argc, char** argv) {
     args.videoCaptureDevice = -1;
 
     args.numGloveColors = 0;
+
+    args.preCropWidth = 25;
+    args.preCropHeight = 25;
+
     args.processingWidth = 25;
     args.processingHeight = 25;
+
     args.normalizedWidth = 25;
     args.normalizedHeight = 25;
+
     args.displayWidth = 75;
     args.displayHeight = 75;
+
     args.trainingSetManifest = (char*) "db/trainingSet/manifest.json";
     args.evaluationSetManifest = (char*) "db/evaluationSet/manifest.json";
     args.searchSetManifest = (char*) "db/searchSet/manifest.json";

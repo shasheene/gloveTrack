@@ -33,7 +33,7 @@ Mat classifyCamera(Mat croppedImage); //temp
 //Below should be obselete because only want one cycle over image during online processing
 
 
-Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance);
+Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance, struct arguments args);
 
 //Returns position of glove as cv::Rect
 Rect fastLocateGlove(Mat region, int darkThreshold);
