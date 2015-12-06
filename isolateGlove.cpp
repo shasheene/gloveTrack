@@ -270,6 +270,37 @@ std::vector<double> calcStandardDev(int populationX, int populationY, std::vecto
     return (toReturn);
 }
 
+/* Helper function adapted from SO: 'Resize an image to a square but keep aspect ratio'
+ * 
+ * OpenCV API being targeted doesn't appear to be able to resize
+ * while maintaining aspect ratio
+ */
+Mat getSquareImage(const Mat& img, int target_width) {
+    int width = img.cols,
+            height = img.rows;
+
+    Mat square = Mat::zeros(target_width, target_width, img.type());
+
+    int max_dim = (width >= height) ? width : height;
+    float scale = ((float) target_width) / max_dim;
+    Rect roi;
+    if (width >= height) {
+        roi.width = target_width;
+        roi.x = 0;
+        roi.height = height * scale;
+        roi.y = (target_width - roi.height) / 2;
+    } else {
+        roi.y = 0;
+        roi.height = target_width;
+        roi.width = width * scale;
+        roi.x = (target_width - roi.width) / 2;
+    }
+
+    resize(img, square(roi), roi.size());
+
+    return square;
+}
+
 /**
  *  Cropping is a vital step in normalizing the image for this algorithm.
  *  We crop our frame in a reproducable manner using the meanShift algorithm.
@@ -328,10 +359,11 @@ Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance, struct 
     const int bwInitialY = 0;
     Rect bandwidthRect = Rect(bwInitialX, bwInitialY, bwInitialWidth, bwInitialHeight);
 
-    int currentIter = 0;
+    int currentIteration = 0;
     std::vector<double> standardDev;
-    while ((euclidianDist(currX, currY, prevX, prevY) > minimumDistance)
-            /*&& ((standardDev.at(0) <3) && (standardDev.at(1) < 3)*/) {
+
+    while ((euclidianDist(currX, currY, prevX, prevY) > minimumDistance) && (currentIteration < maximumIterations)) {
+        currentIteration++;
         // We keep track of every valid pixel to calculate the standard deviation (used each iteration to update bandwidth update)
         std::vector<Point> coordsOfValidPixels;
         //console->debug("Bandwidth rectangle is {}. Current x,y is ({},{})", bandwidthRect, currX, currY);
@@ -397,7 +429,18 @@ Mat meanShiftCrop(Mat frame, int maximumIterations, int minimumDistance, struct 
         console->debug("Rect is {}", bandwidthRect);
     }
 
-    Mat returnFrame = frame(bandwidthRect);
+    // Finally create the cropped image with the discovered rectangle
+    Mat croppedFrame = frame(bandwidthRect);
+
+    // We then turn the rectangle into a square (with black vertical or horizontal borders)
+    Mat returnFrame;
+    if (croppedFrame.rows >= croppedFrame.cols) {
+        returnFrame = getSquareImage(croppedFrame, croppedFrame.rows);
+    } else {
+
+        returnFrame = getSquareImage(croppedFrame, croppedFrame.cols);
+    }
+
     return returnFrame;
 }
 
