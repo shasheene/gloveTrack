@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
 
     struct arguments args;
     args.headlessMode = false;
+    args.displayInputImages = false;
     args.inputVideoFile = NULL;
     args.videoCaptureDevice = -1;
 
@@ -49,6 +50,7 @@ int main(int argc, char** argv) {
     args.evaluationSetManifest = (char*) "db/evaluationSet/manifest.json";
     args.searchSetManifest = (char*) "db/searchSet/manifest.json";
     args.saveNormalizedImages = false;
+    // User specified command-line custom arguments overwrite struct's defaults
     parseCommandLineArgs(argc, argv, args);
 
     runMain(args);
@@ -67,7 +69,7 @@ int runMain(struct arguments args) {
     std::string trainingImagePath("db/blenderImg/");
     std::string testingImagePath("db/test/");
 
-    namedWindow("gloveTrack", 1);
+    namedWindow("gloveTrack", WINDOW_AUTOSIZE);
     setMouseCallback("gloveTrack", mouseCallback, NULL);
 
     //Current glove colors - manually picked from test1.jpg camera image
@@ -191,7 +193,7 @@ int runMain(struct arguments args) {
             frame = captureFrame(captureDevice);
 
             //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-            Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args);
+            Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args).clone();
             /*
                         if (slowMode == true) {
                             //draw on screen (later debug only)
@@ -199,9 +201,6 @@ int runMain(struct arguments args) {
                             frame.copyTo(frame(currentFrameScreenLocation));
                         }
              */
-            //Second run over image for faster lookup later. (May merge with cleanup)
-            Rect shrunkFrameScreenLocation(Point(0, 0), shrunkFrame.size()); //Draw shrunkFrame on given point on screen (later only in debug mode)
-            shrunkFrame.copyTo(frame(shrunkFrameScreenLocation));
             /*
             if (comparisonImages.size() > 0){
               std::vector<int> indexOfMatch = queryDatabasePose(currentFrame);
@@ -248,7 +247,16 @@ int runMain(struct arguments args) {
                     break;
             }
 
-            imshow("gloveTrack", shrunkFrame);
+            if (args.headlessMode == false) {
+                imshow("gloveTrack", shrunkFrame);
+
+                //If in interactive mode, display raw input frame for display/demonstration purposes
+                if (args.displayInputImages == true) {
+                    // Displays unprocessed input frame
+                    namedWindow("input frame", WINDOW_NORMAL);
+                    imshow("input frame", frame);
+                }
+            }
             t = ((double) getTickCount() - t) / getTickFrequency();
             SPDLOG_TRACE(console, "Times passed in seconds {}", t);
         }

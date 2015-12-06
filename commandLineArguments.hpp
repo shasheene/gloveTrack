@@ -20,6 +20,7 @@
  */
 struct arguments {
     bool headlessMode;
+    bool displayInputImages;
     int videoCaptureDevice;
     int numGloveColors;
 

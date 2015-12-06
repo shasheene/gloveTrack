@@ -19,6 +19,7 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 0},
         {"headless-mode", no_argument, 0, 0},
+        {"display-input-images", no_argument, 0, 'd'},
         {"save-normalized-images", no_argument, 0, 's'},
         {"training-set-manifest", required_argument, 0, 0},
         {"evaluation-set-manifest", required_argument, 0, 0},
@@ -58,6 +59,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
 
                 if (0 == strcmp("headless-mode", long_option)) {
                     args.headlessMode = true;
+                } else if (0 == strcmp("display-input-images", long_option)) {
+                    args.displayInputImages = true;
                 } else if (0 == strcmp("training-set-manifest", long_option)) {
                     args.trainingSetManifest = strdup(optarg);
                 } else if (0 == strcmp("evaluation-set-manifest", long_option)) {
@@ -99,6 +102,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 std::cout << "   -i,--input-video=FILE              Use pre-recorded video file as input image stream" << std::endl;
                 std::cout << "   -c,--capture-device=INDEX          Select video capture device (eg, built-in webcam might be 0)" << std::endl;
                 std::cout << "   -h,--headless-mode                 Don't display processing on-screen" << std::endl;
+                std::cout << "   -d,--display-input-images          Displays raw input frames on screen as processing takes place" << std::endl;
+                
                 std::cout << "      --training-set-manifest=FILE    Manifest file detailing the labelled and unlabelled images for 'supervised' training of the statistical model" << std::endl;
                 std::cout << "      --evaluation-set-manifest=FILE  Manifest file detailing the raw images for offline (non live-camera) processing, for demonstration and development (Cannot be used with -c)" << std::endl;
                 std::cout << "      --pose-set-manifest=PATH        Manifest file detailing the pre-computed searching set" << std::endl;
@@ -121,6 +126,9 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 std::cout << "      --version                       Print version information" << std::endl;
 
                 exit(0);
+                break;
+            case 'd':
+                args.displayInputImages = true;
                 break;
             case 'i':
                 //fix this
