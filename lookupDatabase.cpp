@@ -52,7 +52,7 @@ void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::s
         std::string imageOutputFilepath(concatStringInt(databaseFilepathPrefix, i));
         imageOutputFilepath.append(".jpg");
         console->info("Saving photos in {}", imageOutputFilepath);
-        imwrite(imageOutputFilepath, comparisonImages.at(i));
+        //imwrite(imageOutputFilepath, comparisonImages.at(i));
     }
 }
 
@@ -79,7 +79,7 @@ void addToNearestNeighbor(int euclidianDist, int indexOfCandidate,
     }
 }
 
-std::vector<int> queryDatabasePose(Mat curr) {
+std::vector<int> queryDatabasePose(Mat curr, std::vector<Mat> comparisonImages) {
     //Using the Vec3b slowed current from 15ms to 30ms, so usig pointers
 
     std::vector<int> distToNearestNeighbor;
@@ -114,7 +114,7 @@ std::vector<int> queryDatabasePose(Mat curr) {
                     runningTotalHammingDist += (int) colorDelta;
                 }
             }
-            //std::cerr << "running total of this row #" << i << ": " << runningTotalHammingDist << " on image " << q << "\n";
+            std::cerr << "running total of this row #" << i << ": " << runningTotalHammingDist << " on image " << q << "\n";
         }
 
         addToNearestNeighbor(runningTotalHammingDist, q, indexOfNearestNeighbor, distToNearestNeighbor);

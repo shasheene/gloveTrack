@@ -134,6 +134,9 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 //fix this
                 args.inputVideoFile = strdup(optarg);
                 break;
+            case 's':
+                args.saveNormalizedImages = true;
+                break;
             case '?':
                 break;
             default:

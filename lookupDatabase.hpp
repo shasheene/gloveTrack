@@ -25,7 +25,7 @@ int getPose3DModel();//return index to 3D model DB
  */
 
 //If public API exist, these will be private functions:
-std::vector<int> queryDatabasePose(Mat isolatedFrame);
+std::vector<int> queryDatabasePose(Mat isolatedFrame, std::vector<Mat> comparisonImages);
 void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 
 //Takes webcam image and background image and returns image ready for lookup 

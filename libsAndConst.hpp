@@ -12,7 +12,6 @@
 using namespace cv;
 
 //globals set in gloveTrack.cpp. Will remove at some point
-extern std::vector<Mat> comparisonImages;
 
 extern int thresholdBrightness;
 

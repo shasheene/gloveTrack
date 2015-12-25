@@ -5,9 +5,6 @@ std::string concatStringInt(std::string part1, int part2);
 Mat captureFrame(VideoCapture device); //takes photo and returns it
 int numImagesTaken = 0;
 
-//Globals (declared extern'd in libsAndConst.h and defined mostly in main)
-std::vector<Mat> comparisonImages;
-std::vector<Mat> testingImages;
 int thresholdBrightness;
 
 Mat frame;
@@ -66,6 +63,9 @@ int runMain(struct arguments args) {
     manifest evaluationSetManifest = manifest();
     evaluationSetManifest.load_manifest(args.evaluationSetManifest);
 
+    manifest searchSetManifest = manifest();
+    searchSetManifest.load_manifest(args.searchSetManifest);
+    
     std::string trainingImagePath("db/blenderImg/");
     std::string testingImagePath("db/test/");
 
@@ -122,34 +122,24 @@ int runMain(struct arguments args) {
         int databaseImageWidth = 50;
         int databaseImageHeight = 50;
 
-        //Load image database
-        //loadImageDatabase(comparisonImages, trainingImagePath, 64); //wrong for testing
-        loadCameraImageDatabase(testingImages, testingImagePath, 64);
-
-
-        Mat testImages[6];
-
         for (int i = 0; i < evaluationSetManifest.unnormalized_images.size(); i++) {
             //Mat input = fastReduceDimensions(evaluationSetManifest.unnormalized_images.at(i), 50);
             SPDLOG_TRACE(console, "Running EM on query image");
             Mat normalizedImage = normalizeQueryImage(evaluationSetManifest.unnormalized_images.at(i), em, resultToIndex, args);
             imshow("gloveTrack", normalizedImage);
-            /*if (args.saveNormalizedImages==true) {
+            if (args.saveNormalizedImages==true) {
                 vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION,0);
-                cv::imwrite("db/test.png",normalizedImage,param);
-                exit(0);
-            }*/
-            waitKey(0);
-        }
+                std::stringstream ss;
+                ss << "db/playSet2/test";
+                ss << i ;
+                ss << ".png";
+                cv::imwrite(ss.str(),normalizedImage,param);
+            }
 
-        for (int i = 0; i < testingImages.size(); i++) {
             console->info("Testing image number {}", i);
 
-            imshow("gloveTrack", testingImages.at(i));
-            waitKey(0);
-
             //Output X nearest neighbors by weighted hamming distance, 
-            std::vector<int> nearestNeighboors = queryDatabasePose(testingImages.at(i));
+            std::vector<int> nearestNeighboors = queryDatabasePose(normalizedImage, searchSetManifest.unnormalized_images);
 
             for (int i = 0; i < nearestNeighboors.size(); i++) {
                 console->info("Testing image number {}", nearestNeighboors.at(i));
@@ -185,9 +175,6 @@ int runMain(struct arguments args) {
         int databaseImageWidth = 50;
         int databaseImageHeight = 50;
 
-        //Load image database
-        int initialImageDatabaseSize = loadImageDatabase(comparisonImages, databaseImagePath, 64);
-
         while (true) {
             double t = (double) getTickCount(); //fps calculation
             frame = captureFrame(captureDevice);
@@ -217,7 +204,7 @@ int runMain(struct arguments args) {
             int c = waitKey(1);
             switch (c) {
                 case 'p':
-                    console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
+                    //console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
                     //comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
                     //numImagesTaken++;
                     break;
