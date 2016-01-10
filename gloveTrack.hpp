@@ -19,7 +19,6 @@
 #include "isolateGlove.hpp"
 #include "lookupDatabase.hpp"
 #include "commandLineArguments.hpp"
-#include "mouse.hpp"
 #include "manifest.hpp"
 
 //For GNU getopt command line arg parsing

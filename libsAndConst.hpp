@@ -13,14 +13,14 @@ using namespace cv;
 
 //globals set in gloveTrack.cpp. Will remove at some point
 
-extern int thresholdBrightness;
+extern int threshold_brightness;
 
 extern Mat frame; // Entire camera frame
 
 #define NUMGLOVECOLORS 9 //8 unique colors, and index 0 being temp backgound removal
-extern Scalar classificationColor[]; //camera image classification buckets
-extern Scalar blenderGloveColor[]; //color buckets of rendered blender glove images (same indexing as above)
-extern int classificationArrayIndex; //Used for calibration mode mouse.cpp events
+extern Scalar classification_color[]; //camera image classification buckets
+extern Scalar blender_glove_color[]; //color buckets of rendered blender glove images (same indexing as above)
+extern int classification_array_index; //Used for calibration mode mouse.cpp events
 
 //brightness and constrast changes
 #define ALPHA 1 //1.3
@@ -28,6 +28,6 @@ extern int classificationArrayIndex; //Used for calibration mode mouse.cpp event
 
 extern void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
 
-extern Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame); //same size image
+extern Mat cleanupImage(Mat isolatedFrame, Mat isolated_background_frame); //same size image
 
 #endif

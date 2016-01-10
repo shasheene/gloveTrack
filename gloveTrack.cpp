@@ -1,22 +1,21 @@
 #include "gloveTrack.hpp"
 
-std::string concatStringInt(std::string part1, int part2);
+Scalar classification_color[NUMGLOVECOLORS];
 
-Mat captureFrame(VideoCapture device); //takes photo and returns it
-int numImagesTaken = 0;
+bool openCaptureDevice(VideoCapture &capture_device, int device_number) {
+    capture_device.open(device_number);
+    return (capture_device.isOpened());
+}
 
-int thresholdBrightness;
-
-Mat frame;
-
-Scalar classificationColor[NUMGLOVECOLORS];
-int classificationArrayIndex; //used in mouse call back
-
-Scalar blenderGloveColor[NUMGLOVECOLORS];
-
-//Debug and helper function
-bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber);
-void drawCurrentClassificationColors(Mat &targetFrame, int image_width, int image_height); //draws vertical squares representing classifcation color
+Mat captureFrame(VideoCapture device) {
+    Mat frame;
+    bool readable = device.read(frame);
+    if (!readable) {
+        spdlog::get("console")->info("Cannot read frame from video stream");
+        exit(1);
+    }
+    return (frame);
+}
 
 int main(int argc, char** argv) {
     //In other functions, initially get a logger reference with "spdlog::get("console")"
@@ -24,29 +23,29 @@ int main(int argc, char** argv) {
     console->info("gloveTrack");
 
     struct arguments args;
-    args.headlessMode = false;
-    args.displayInputImages = false;
-    args.inputVideoFile = NULL;
-    args.videoCaptureDevice = -1;
+    args.headless_mode = false;
+    args.display_input_images = false;
+    args.input_video_file = NULL;
+    args.video_capture_device = -1;
 
-    args.numGloveColors = 0;
+    args.num_glove_colors = 0;
 
-    args.preCropWidth = 25;
-    args.preCropHeight = 25;
+    args.pre_crop_width = 25;
+    args.pre_crop_height = 25;
 
-    args.processingWidth = 25;
-    args.processingHeight = 25;
+    args.processing_width = 25;
+    args.processing_height = 25;
 
-    args.normalizedWidth = 25;
-    args.normalizedHeight = 25;
+    args.normalized_width = 25;
+    args.normalized_height = 25;
 
-    args.displayWidth = 75;
-    args.displayHeight = 75;
+    args.display_width = 75;
+    args.display_height = 75;
 
-    args.trainingSetManifest = (char*) "db/trainingSet/manifest.json";
-    args.evaluationSetManifest = (char*) "db/evaluationSet/manifest.json";
-    args.searchSetManifest = (char*) "db/searchSet/manifest.json";
-    args.saveNormalizedImages = false;
+    args.training_set_manifest = (char*) "db/trainingSet/manifest.json";
+    args.evaluation_set_manifest = (char*) "db/evaluationSet/manifest.json";
+    args.search_set_manifest = (char*) "db/searchSet/manifest.json";
+    args.save_normalized_images = false;
     // User specified command-line custom arguments overwrite struct's defaults
     parseCommandLineArgs(argc, argv, args);
 
@@ -57,35 +56,27 @@ int main(int argc, char** argv) {
 int runMain(struct arguments args) {
     auto console = spdlog::get("console");
 
-    manifest trainingSetManifest = manifest();
-    trainingSetManifest.load_manifest(args.trainingSetManifest);
+    Manifest trainingSetManifest = Manifest();
+    trainingSetManifest.LoadManifest(args.training_set_manifest);
 
-    manifest evaluationSetManifest = manifest();
-    evaluationSetManifest.load_manifest(args.evaluationSetManifest);
+    Manifest evaluationSetManifest = Manifest();
+    evaluationSetManifest.LoadManifest(args.evaluation_set_manifest);
 
-    manifest searchSetManifest = manifest();
-    searchSetManifest.load_manifest(args.searchSetManifest);
-    
-    std::string trainingImagePath("db/blenderImg/");
-    std::string testingImagePath("db/test/");
+    Manifest searchSetManifest = Manifest();
+    searchSetManifest.LoadManifest(args.search_set_manifest);
 
     namedWindow("gloveTrack", WINDOW_AUTOSIZE);
-    setMouseCallback("gloveTrack", mouseCallback, NULL);
 
     //Current glove colors - manually picked from test1.jpg camera image
-    classificationColor[0] = Scalar(0, 0, 0, 0); //bkg
-    classificationColor[1] = Scalar(119, 166, 194, 0); //white
-    classificationColor[2] = Scalar(22, 29, 203, 0); //red
-    classificationColor[3] = Scalar(32, 155, 169, 0); //green
-    classificationColor[4] = Scalar(77, 13, 19, 0); //dark blue
-    classificationColor[5] = Scalar(14, 95, 206, 0); //orange
-    classificationColor[6] = Scalar(129, 151, 102, 0); //light blue
-    classificationColor[7] = Scalar(94, 121, 208, 0); //pink
-    classificationColor[8] = Scalar(88, 52, 94, 0); //purple
-
-    int no_of_clusters = NUMGLOVECOLORS;
-    EM em(no_of_clusters); //Expectation Maximization Object with ... clusters.
-    int resultToIndex[NUMGLOVECOLORS]; //initialized in training function
+    classification_color[0] = Scalar(0, 0, 0, 0); //bkg
+    classification_color[1] = Scalar(119, 166, 194, 0); //white
+    classification_color[2] = Scalar(22, 29, 203, 0); //red
+    classification_color[3] = Scalar(32, 155, 169, 0); //green
+    classification_color[4] = Scalar(77, 13, 19, 0); //dark blue
+    classification_color[5] = Scalar(14, 95, 206, 0); //orange
+    classification_color[6] = Scalar(129, 151, 102, 0); //light blue
+    classification_color[7] = Scalar(94, 121, 208, 0); //pink
+    classification_color[8] = Scalar(88, 52, 94, 0); //purple
 
     std::cout << "Loading expectation maximization training set" << std::endl;
     std::vector<Mat> train_unlabelled_set = trainingSetManifest.unnormalized_images;
@@ -98,190 +89,86 @@ int runMain(struct arguments args) {
         exit(0);
     }
 
-    Mat* rawTrainingImages;
-    rawTrainingImages = new Mat[train_unlabelled_set.size()];
-    Mat* labelledTrainingImages;
-    labelledTrainingImages = new Mat[train_labelled_set.size()];
+    vector<Mat> raw_training_images = vector<Mat>();
+    vector<Mat> labelled_training_images = vector<Mat>();
 
     for (int i = 0; i < train_unlabelled_set.size(); i++) {
         //colors will be classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
-        rawTrainingImages[i] = fastReduceDimensions(train_unlabelled_set.at(i), 10);
+        raw_training_images.push_back(fastReduceDimensions(train_unlabelled_set.at(i), 10));
     }
     for (int i = 0; i < train_labelled_set.size(); i++) {
         //colors will be classified/calibrated either manually by coloring Photoshop/Gimp/etc, or algorithmically
-        labelledTrainingImages[i] = fastReduceDimensions(train_labelled_set.at(i), 10);
+        labelled_training_images.push_back(fastReduceDimensions(train_labelled_set.at(i), 10));
     }
 
-    console->info("Training expectation maximization model");
-    trainExpectationMaximizationModel(rawTrainingImages, labelledTrainingImages, 1, em, resultToIndex); //Magic 2, the number of training images. fix
-    //free(rawTrainingImages);
-    //free(labelledTrainingImages);
+    LookupDb lookup_db = LookupDb();
+    lookup_db.Setup();
 
-    if ((args.inputVideoFile == NULL) && (args.videoCaptureDevice == -1)) {
-        //Size of reduced dimensionality image
-        int databaseImageWidth = 50;
-        int databaseImageHeight = 50;
+    GloveTrack glove_track = GloveTrack();
+    glove_track.Setup(raw_training_images, labelled_training_images, classification_color, lookup_db, args);
+
+    if ((args.input_video_file == NULL) && (args.video_capture_device == -1)) {
+        // Non-live mode. That is, reading individual images via manifest files
 
         for (int i = 0; i < evaluationSetManifest.unnormalized_images.size(); i++) {
-            //Mat input = fastReduceDimensions(evaluationSetManifest.unnormalized_images.at(i), 50);
+
             SPDLOG_TRACE(console, "Running EM on query image");
-            Mat normalizedImage = normalizeQueryImage(evaluationSetManifest.unnormalized_images.at(i), em, resultToIndex, args);
-            imshow("gloveTrack", normalizedImage);
-            if (args.saveNormalizedImages==true) {
-                vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION,0);
+            vector<int> closest_match = glove_track.GetHandPose(evaluationSetManifest.unnormalized_images.at(i));
+            imshow("gloveTrack", glove_track.GetLastNormalizedImage());
+            waitKey(0);
+
+            if (args.save_normalized_images == true) {
+                vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION, 0);
                 std::stringstream ss;
                 ss << "db/playSet2/test";
-                ss << i ;
+                ss << i;
                 ss << ".png";
-                cv::imwrite(ss.str(),normalizedImage,param);
+                cv::imwrite(ss.str(), glove_track.GetLastNormalizedImage(), param);
             }
 
             console->info("Testing image number {}", i);
-
-            //Output X nearest neighbors by weighted hamming distance, 
-            std::vector<int> nearestNeighboors = queryDatabasePose(normalizedImage, searchSetManifest.unnormalized_images);
-
-            for (int i = 0; i < nearestNeighboors.size(); i++) {
-                console->info("Testing image number {}", nearestNeighboors.at(i));
-            }
-            console->info("Waiting for user input before moving to next image");
-            waitKey(0);
         }
     } else {
-        int thresholdBrightness = 64;
+        // Live mode (reading from video file or webcam)
+        VideoCapture capture_device;
 
-        std::string databaseImagePath("db/blenderImg"); //query image path - temp
-
-        VideoCapture captureDevice;
-
-
-        if (args.videoCaptureDevice != -1) {
-            console->info("Attempting to open webcam: {}", args.videoCaptureDevice);
-            openCaptureDevice(captureDevice, args.videoCaptureDevice);
+        if (args.video_capture_device != -1) {
+            console->info("Attempting to open webcam: {}", args.video_capture_device);
+            openCaptureDevice(capture_device, args.video_capture_device);
         } else {
-            console->info("Attempting to open video file: {}", args.inputVideoFile);
-            captureDevice.open(args.inputVideoFile);
+            console->info("Attempting to open video file: {}", args.input_video_file);
+            capture_device.open(args.input_video_file);
         }
 
-        if (!captureDevice.isOpened()) {
+        if (!capture_device.isOpened()) {
             console->info("Unable to open video capture device. Quitting");
             exit(1);
         }
 
-        int image_width = captureDevice.get(CV_CAP_PROP_FRAME_WIDTH);
-        int image_height = captureDevice.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-        //Size of reduced dimensionality image
-        int databaseImageWidth = 50;
-        int databaseImageHeight = 50;
-
         while (true) {
-            double t = (double) getTickCount(); //fps calculation
-            frame = captureFrame(captureDevice);
+            //fps calculation
+            double t = (double) getTickCount();
 
-            //Mat shrunkFrame = fastNormalizeQueryImage(frame, thresholdBrightness);
-            Mat shrunkFrame = normalizeQueryImage(frame, em, resultToIndex, args).clone();
-            /*
-                        if (slowMode == true) {
-                            //draw on screen (later debug only)
-                            Rect currentFrameScreenLocation(Point(40, 40), frame.size());
-                            frame.copyTo(frame(currentFrameScreenLocation));
-                        }
-             */
-            /*
-            if (comparisonImages.size() > 0){
-              std::vector<int> indexOfMatch = queryDatabasePose(currentFrame);
-              Rect roi(Point(100,240), comparisonImages.at(indexOfMatch.at(0)).size());
-              //Isolate below into "getPoseImage()" later:
-              comparisonImages.at(indexOfMatch.at(0)).copyTo(frame(roi));
-              }*/
+            Mat frame = captureFrame(capture_device);
 
-
-            //drawCurrentClassificationColors(frame, image_width, image_height);
-
-
-            //READ KEYBOARD
-            int c = waitKey(1);
-            switch (c) {
-                case 'p':
-                    //console->info("P pressed. Pushing back photo number {} into {}", numImagesTaken, numImagesTaken + initialImageDatabaseSize);
-                    //comparisonImages.push_back(currentFrame);//immediately make new comparison image this photo
-                    //numImagesTaken++;
-                    break;
-                case '[':
-                    if (thresholdBrightness > 0) {
-                        thresholdBrightness--;
-                    }
-                    console->info("Threshold brightness now: {}", thresholdBrightness);
-                    break;
-                case ']':
-                    if (thresholdBrightness < 255) {
-                        thresholdBrightness++;
-                    }
-                    console->info("Threshold brightness now: {}", thresholdBrightness);
-                    break;
-                case 'q':
-                    /*if (verbosity > 0) {
-                      //Backup unsaved comparison image files:
-                      saveDatabase(comparisonImages, initialImageDatabaseSize, databaseImagePath);
-
-                      //Later, save classification colors to image file
-                      for (int i = 0; i < NUMGLOVECOLORS; i++) {
-                        console->info("{}", classificationColor[i]);
-                      }
-                    }*/
-                    exit(0);
-                    break;
-            }
-
-            if (args.headlessMode == false) {
-                imshow("gloveTrack", shrunkFrame);
+            vector<int> closest_match = glove_track.GetHandPose(frame);
+            if (args.headless_mode == false) {
+                imshow("gloveTrack", glove_track.GetLastNormalizedImage());
 
                 //If in interactive mode, display raw input frame for display/demonstration purposes
-                if (args.displayInputImages == true) {
+                if (args.display_input_images == true) {
                     // Displays unprocessed input frame
                     namedWindow("input frame", WINDOW_NORMAL);
                     imshow("input frame", frame);
                 }
             }
+
+            // imshow requires use waitKey(n) to display frame for n milliseconds
+            waitKey(1);
+
             t = ((double) getTickCount() - t) / getTickFrequency();
             SPDLOG_TRACE(console, "Times passed in seconds {}", t);
         }
     }
     return (0);
-}
-
-//for debug:
-
-void drawCurrentClassificationColors(Mat &frame, int image_width, int image_height) {
-    Rect classificationRect = Rect(image_width - 25, (image_height / 20.0), 25, 45); //area to output classification colors
-
-    //draw little square to show which color is being calibrated
-    Rect selectorSymbolRect = Rect(image_width - classificationRect.width / 2 - 25, (image_height / 20.0) + classificationArrayIndex * classificationRect.height + classificationRect.height / 2, 10, 10); //nicely located to the left of the classification colors
-    Mat selectorSymbol(frame, selectorSymbolRect);
-    selectorSymbol = Scalar(0, 0, 0, 0); //black square;
-    selectorSymbol.copyTo(frame(selectorSymbolRect));
-
-    //draw actual classification colors on screen
-    for (int i = 0; i < NUMGLOVECOLORS; i++) {
-        Mat smallBlockOfColor(frame, classificationRect);
-        smallBlockOfColor = classificationColor[i];
-        smallBlockOfColor.copyTo(frame(classificationRect));
-        classificationRect.y += classificationRect.height;
-    }
-}
-
-bool openCaptureDevice(VideoCapture &captureDevice, int deviceNumber) {
-    captureDevice.open(deviceNumber);
-    return (captureDevice.isOpened());
-}
-
-Mat captureFrame(VideoCapture device) {
-    Mat frame;
-    bool readable = device.read(frame);
-    if (!readable) {
-        spdlog::get("console")->info("Cannot read frame from video stream");
-        exit(1);
-    }
-    return (frame);
 }

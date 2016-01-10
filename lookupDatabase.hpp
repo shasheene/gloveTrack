@@ -3,41 +3,44 @@
 
 #include "libsAndConst.hpp"
 
-#include "isolateGlove.hpp"
-
 #include "math.h" //sqrt/pow
 #include <iomanip>
 
+// Abstract class for distance function
+
+class DistanceMetric {
+public:
+    DistanceMetric();
+    int compare(Mat image_a, Mat image_b);
+private:
+
+};
+
+class LookupDb {
+public:
+    //TODO(shasheene@gmail.com): Temp, remove
+    LookupDb();
+
+    LookupDb(std::vector<Mat> search_set_of_normalized_images, std::vector<Mat> positive_examples, std::vector<Mat> negative_examples, DistanceMetric distance_function);
+    void Setup();
+
+    // TODO(shasheene@gmail.com): Make this returns handpose object
+    vector<int> EstimateHandPose(Mat normalized_frame);
+private:
+    // Helper functions
+    vector<int> ApproximateNearestNeighbor(Mat normalized_image);
+    vector<int> TrueNearestNeighbor(Mat normalized_image, vector<int>);
+
+    // Converts input image to binary string with nearest neighbor to search set encoded in hamming distance
+    vector<int> ComputeBinaryCode(Mat normalized_image);
+    vector<int> DoHammingDistanceComparison(vector<int> binary_string_to_lookup);
 
 
-int loadImageDatabase(std::vector<Mat>& imageVector, std::string databaseFilepathPrefix, int thresholdBrightness); //Reads in images 0 to n at filepath $(databaseDirectoryPath)n.jpg, places into imageVector and returns n. (Note the imageVector is being passed by reference!)
+    void AddToNearestNeighbor(int euclidian_dist, int index_of_candidate,
+            std::vector<int> &index_of_nearest_neighbor, std::vector<int> &dist_to_nearest_neighbor);
+};
 
-int loadCameraImageDatabase(std::vector<Mat> &imageVector, std::string databaseFilepathPrefix, int thresholdBrightness);
+std::vector<int> queryDatabasePose(Mat isolated_frame, std::vector<Mat> comparison_images);
 
-void saveDatabase(std::vector<Mat> imageVector, int originalDatabaseSize, std::string databaseFilepathPrefix);
-
-
-/*
-Potential future public API:
-int* getPostRawData();// returns int array of finger/hand/etc position for another program
-Mat getPoseRawImage(Mat isolatedFrame);
-int getPose3DModel();//return index to 3D model DB
- */
-
-//If public API exist, these will be private functions:
-std::vector<int> queryDatabasePose(Mat isolatedFrame, std::vector<Mat> comparisonImages);
-void increaseBrightnessAndConstrastOfPixel(Mat frame, int row, int col);
-
-//Takes webcam image and background image and returns image ready for lookup 
-Mat cleanupImage(Mat isolatedFrame, Mat isolatedBackgroundFrame); //same size images
-
-//------PRIVATE HELPER FUNCTIONS---------
-//(perhaps make private member functions in future if using OO):
-
-void setPixelBlank(Mat returnFrame, int i, int j); //Used in cleanup image. May be removed in future
 std::string concatStringInt(std::string part1, int part2); //Pre-C++11 standard doesn't have string class concat, atoi not standardized
-
-
-
-
-#endif
+#endif // LOOKUPDATABASE_H

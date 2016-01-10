@@ -19,17 +19,17 @@
      * Not ideal. Will seperate at some point and can redesign with proper class
      * hierachy, but certainly good enough as of writing.
      */
-class manifest {
+class Manifest {
 public:
-    manifest();
-    manifest(const manifest& orig);
-    virtual ~manifest();
-    void load_manifest(char* path_to_load);
-    void save_manifest(char* path_to_save);
+    Manifest();
+    Manifest(const Manifest& orig);
+    virtual ~Manifest();
+    void LoadManifest(char* path_to_load);
+    void SaveManifest(char* path_to_save);
 
     //REMEMBER OpenCV color space is BGR, not RGB
-    int numGloveColors;
-    cv::Scalar *classificationColors;
+    int num_glove_colors;
+    cv::Scalar *classification_colors;
     std::vector<Mat> unnormalized_images;
     std::vector<Mat> labelled_images;
     

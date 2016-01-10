@@ -19,30 +19,30 @@
  * 
  */
 struct arguments {
-    bool headlessMode;
-    bool displayInputImages;
-    int videoCaptureDevice;
-    int numGloveColors;
+    bool headless_mode;
+    bool display_input_images;
+    int video_capture_device;
+    int num_glove_colors;
 
-    int preCropWidth;
-    int preCropHeight;
+    int pre_crop_width;
+    int pre_crop_height;
 
     
-    int processingWidth;
-    int processingHeight;
+    int processing_width;
+    int processing_height;
 
-    int normalizedWidth;
-    int normalizedHeight;
+    int normalized_width;
+    int normalized_height;
 
-    int displayWidth;
-    int displayHeight;
+    int display_width;
+    int display_height;
     
-    char* trainingSetManifest;
-    char* evaluationSetManifest;
-    char* searchSetManifest;
-    char* inputVideoFile;
+    char* training_set_manifest;
+    char* evaluation_set_manifest;
+    char* search_set_manifest;
+    char* input_video_file;
     
-    bool saveNormalizedImages;
+    bool save_normalized_images;
 };
 
 void parseCommandLineArgs(int argc, char** argv, struct arguments &args);
