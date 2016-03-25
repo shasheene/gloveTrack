@@ -1,0 +1,3 @@
+[submodule "db3"]
+	path = db
+	url = https://github.com/shasheene/gloveTrack-database.git
