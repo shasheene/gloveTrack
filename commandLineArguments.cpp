@@ -19,6 +19,7 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'v'},
         {"headless-mode", no_argument, 0, 0},
+        {"generate-search-set-mode", no_argument, 0, 0},
         {"display-input-images", no_argument, 0, 'd'},
         {"save-normalized-images", no_argument, 0, 's'},
         {"training-set-manifest", required_argument, 0, 0},
@@ -56,6 +57,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
 
                 if (0 == strcmp("headless-mode", long_option)) {
                     args.headless_mode = true;
+                } else if (0 == strcmp("generate-search-set-mode", long_option)) {
+                    args.generate_search_set_mode = true;
                 } else if (0 == strcmp("display-input-images", long_option)) {
                     args.display_input_images = true;
                 } else if (0 == strcmp("training-set-manifest", long_option)) {

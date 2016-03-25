@@ -20,6 +20,8 @@
 #include "lookupDatabase.hpp"
 #include "commandLineArguments.hpp"
 #include "manifest.hpp"
+#include "renderer.hpp"
+#include "generatedb.hpp"
 
 //For GNU getopt command line arg parsing
 // Maybe replace with c++ library

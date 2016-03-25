@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
 
     struct arguments args;
     args.headless_mode = false;
+    args.generate_search_set_mode = false;
     args.display_input_images = false;
     args.input_video_file = NULL;
     args.video_capture_device = -1;
@@ -101,11 +102,46 @@ int runMain(struct arguments args) {
         labelled_training_images.push_back(fastReduceDimensions(train_labelled_set.at(i), 10));
     }
 
-    LookupDb lookup_db = LookupDb();
+    LookupDb lookup_db;
     lookup_db.Setup();
 
-    GloveTrack glove_track = GloveTrack();
+    GloveTrack glove_track;
     glove_track.Setup(raw_training_images, labelled_training_images, classification_color, lookup_db, args);
+
+    // Generate Search Set
+    if (args.generate_search_set_mode == true) {
+        std::cout << "Generating search set" << std::endl;
+
+        //Create searchSet generator
+        //Setup - load full hand pose minimum, full hand pose maximum, set num poses, num camera angles per pose  -3 rotational axis (ignore distance for now), num poses, base folder.
+
+        // Render (cycles through all images, SAVES png file to disk, but keeps filling manifest in memory)
+        GloveRenderer glove_renderer;
+        glove_renderer.Setup("../../libhand/blender/scene_spec.yml");
+
+        FullHandPose hand_pose = FullHandPose(glove_renderer.GetSceneSpec().num_bones());
+        hand_pose.Load("../../libhand/poses/relaxed2.yml", glove_renderer.GetSceneSpec());
+        FullHandPose high_five = glove_renderer.LoadFullHandPose("../../libhand/poses/high_five.yml");
+        FullHandPose clenched_fist = glove_renderer.LoadFullHandPose("../../libhand/poses/clenched_fist.yml");
+
+        GenerateDb generate_db;
+        generate_db.Setup(&glove_renderer, "db/generated_fun");
+        Mat frame;
+
+        generate_db.interpolate(10, 10, high_five, clenched_fist);
+        // Generate binary string
+        
+        /*
+        //Misusing headless mode variable temporarily. Should maybe have variable like "normalise mode"
+        if (args.headless_mode == false) {
+            glove_track.GetHandPose(frame);
+            imshow("gloveTrack", glove_track.GetLastNormalizedImage());
+        }
+        waitKey(1);
+        */
+
+        exit(0);
+    }
 
     if ((args.input_video_file == NULL) && (args.video_capture_device == -1)) {
         // Non-live mode. That is, reading individual images via manifest files
