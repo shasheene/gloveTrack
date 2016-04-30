@@ -66,6 +66,8 @@ int runMain(struct arguments args) {
     Manifest searchSetManifest = Manifest();
     searchSetManifest.LoadManifest(args.search_set_manifest);
 
+    Manifest generated_db_manifest;
+    
     namedWindow("gloveTrack", WINDOW_AUTOSIZE);
 
     //Current glove colors - manually picked from test1.jpg camera image
@@ -128,19 +130,9 @@ int runMain(struct arguments args) {
         generate_db.Setup(&glove_renderer, "db/generated_fun");
         Mat frame;
 
-        generate_db.interpolate(10, 10, high_five, clenched_fist);
-        // Generate binary string
-        
-        /*
-        //Misusing headless mode variable temporarily. Should maybe have variable like "normalise mode"
-        if (args.headless_mode == false) {
-            glove_track.GetHandPose(frame);
-            imshow("gloveTrack", glove_track.GetLastNormalizedImage());
-        }
-        waitKey(1);
-        */
 
-        exit(0);
+        generate_db.interpolate(10, 10, high_five, clenched_fist, generated_db_manifest, glove_track);
+        // Generate binary string
     }
 
     if ((args.input_video_file == NULL) && (args.video_capture_device == -1)) {
@@ -148,11 +140,15 @@ int runMain(struct arguments args) {
 
         for (int i = 0; i < evaluationSetManifest.unnormalized_images.size(); i++) {
 
-            SPDLOG_TRACE(console, "Running EM on query image");
-            vector<int> closest_match = glove_track.GetHandPose(evaluationSetManifest.unnormalized_images.at(i));
-            imshow("gloveTrack", glove_track.GetLastNormalizedImage());
-            waitKey(0);
-
+            try {
+                SPDLOG_TRACE(console, "Running EM on query image");
+                vector<int> closest_match = glove_track.GetHandPose(evaluationSetManifest.unnormalized_images.at(i));
+                imshow("gloveTrack", glove_track.GetLastNormalizedImage());
+                waitKey(0);
+            } catch (...) {
+                SPDLOG_TRACE(console, "OpenCV displaying image of size 0");
+            }
+            
             if (args.save_normalized_images == true) {
                 vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION, 0);
                 std::stringstream ss;

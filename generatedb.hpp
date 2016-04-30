@@ -3,6 +3,7 @@
 
 #include "renderer.hpp"
 #include "manifest.hpp"
+#include "isolateGlove.hpp"
 
 // Don't forget to mention the libhand namespace
 using namespace libhand;
@@ -15,9 +16,11 @@ public:
     void Setup(GloveRenderer* render, string target_directory);
 
     // Returns a FullHandPoseObject min_pose incremented by incremental_pose.
+    // Populates manifest object
+    // Needs trained GloveTrack object to create classifiication images
     // Due to limitations in 3rd party library libhand, we are unfortunately forced to overwrite max_pose
     //TODO(shasheene@gmail.com): Add copy constructor to libhand headers
-    Manifest interpolate(int num_camera_angles, int num_poses_per_camera_angle, FullHandPose min_pose, FullHandPose incremental_pose);
+    void interpolate(int num_camera_angles, int num_poses_per_camera_angle, FullHandPose min_pose, FullHandPose incremental_pose, Manifest &manifest, GloveTrack glove_track);
 
 private:
     // Returns a FullHandPose object with the difference between two poses, divided by num_poses.

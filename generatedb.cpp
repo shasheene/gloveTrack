@@ -22,9 +22,8 @@ void GenerateDb::Setup(GloveRenderer* renderer, string target_directory2) {
     target_directory = target_directory2;
 }
 
-Manifest GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_angle, FullHandPose min_pose, FullHandPose max_pose) {
+void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_angle, FullHandPose min_pose, FullHandPose max_pose, Manifest &manifest, GloveTrack glove_track) {
     auto console = spdlog::get("console");
-    Manifest frame;
     HandCameraSpec initial_camera_spec = glove_renderer->GetHandCameraSpec();
     initial_camera_spec.theta = 0;
     initial_camera_spec.phi = 3.1415;
@@ -36,7 +35,7 @@ Manifest GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera
     spdlog::get("console")->error("Incremental pose is b{}, t{}, s{}", incremental_pose.bend(0), incremental_pose.twist(0), incremental_pose.side(0));
 
     // We have 3 axises to modify and 
-    int num_images = num_camera_angles;// 3;
+    int num_images = num_camera_angles; // 3;
 
     //camera_spec.r += 0.01; //hand_renderer.initial_cam_distance();
 
@@ -52,35 +51,48 @@ Manifest GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera
             //} else if ((j % 3) == 2) {
             //modified_camera_spec.tilt += 2 * (3.1415) / num_images;
             //}
-            Mat pic = glove_renderer->Render(min_pose, modified_camera_spec);
-            cv::imshow("Generated hand pose", pic);
-            vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION, 0);
+            
+            //TODO(shasheene@gmail.com): Fix exception handling here
+            try {
+                Mat pic = glove_renderer->Render(min_pose, modified_camera_spec);
+                //manifest.unnormalized_images.push_back(pic.clone());
+                cv::imshow("Generated hand pose database entry", pic);
+                
+                SPDLOG_TRACE(console, "Running EM on query image");
+                glove_track.GetHandPose(pic);
+                Mat labelled = glove_track.GetLastNormalizedImage();
+                manifest.labelled_images.push_back(labelled.clone());
+                imshow("Labelled images of generated poses (not fully calibrated model)", labelled);
+
+                waitKey(4);
+            } catch (...) {
+                SPDLOG_TRACE(console, "OpenCV displaying image of size 0");
+            }
 
 
-            cv::imwrite(GenerateFilename(target_directory,i*j,3), pic, param);
+            // Needs this to render
             waitKey(4);
         }
     }
-    return frame;
 }
 
 string GenerateDb::GenerateFilename(string target_directory, int index, int padding_zeroes) {
-                // backup formatting standard
-            ios init(NULL);
-            init.copyfmt(cout);
+    // backup formatting standard
+    ios init(NULL);
+    init.copyfmt(cout);
 
-            std::stringstream index_ss;
-            index_ss << std::setfill('0') << std::setw(padding_zeroes);
-            index_ss << index;
-            
-            //restore formatting standard
-            cout.copyfmt(init);
-            
-            std::stringstream path_ss;
-            path_ss << target_directory << "/"; 
-            path_ss << "searchSet_" << index_ss.str() << ".png";
-            return path_ss.str();
-    
+    std::stringstream index_ss;
+    index_ss << std::setfill('0') << std::setw(padding_zeroes);
+    index_ss << index;
+
+    //restore formatting standard
+    cout.copyfmt(init);
+
+    std::stringstream path_ss;
+    path_ss << target_directory << "/";
+    path_ss << "searchSet_" << index_ss.str() << ".png";
+    return path_ss.str();
+
 }
 
 string GenerateDb::GenerateTimestamp() {
