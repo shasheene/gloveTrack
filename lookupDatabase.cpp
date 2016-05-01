@@ -1,26 +1,27 @@
 #include "lookupDatabase.hpp"
 
-  LookupDb::LookupDb() {
-      
-  }
-  
-  LookupDb::LookupDb(std::vector<Mat> search_set_of_normalized_images, std::vector<Mat> positive_examples, std::vector<Mat> negative_examples, DistanceMetric distance_function) {
-  }
-  void LookupDb::Setup() {
-  }
-        
- vector<int> LookupDb::EstimateHandPose(Mat normalized_frame) {
-     vector<int> test;
-     return test;
- }
+LookupDb::LookupDb() {
 
- /*        vector<int> ApproximateNearestNeighbor(Mat normalizedImage);
-        vector<int> TrueNearestNeighbor(Mat normalizedImage, vector<int>);
+}
+
+LookupDb::LookupDb(std::vector<Mat> search_set_of_normalized_images, std::vector<Mat> positive_examples, std::vector<Mat> negative_examples, DistanceMetric distance_function) {
+}
+
+void LookupDb::Setup() {
+}
+
+vector<int> LookupDb::EstimateHandPose(Mat normalized_frame) {
+    vector<int> test;
+    return test;
+}
+
+/*        vector<int> ApproximateNearestNeighbor(Mat normalizedImage);
+       vector<int> TrueNearestNeighbor(Mat normalizedImage, vector<int>);
         
-        // Converts input image to binary string with nearest neighbor to search set encoded in hamming distance
-        vector<int> ComputeBinaryCode(Mat normalizedImage);
-        vector<int> DoHammingDistanceComparison(vector<int> binaryStringToLookup);
-*/    
+       // Converts input image to binary string with nearest neighbor to search set encoded in hamming distance
+       vector<int> ComputeBinaryCode(Mat normalizedImage);
+       vector<int> DoHammingDistanceComparison(vector<int> binaryStringToLookup);
+ */
 
 //TEMPORARY QUCIK AND DIRTY INSERTION SORT. O(n^2) is ok as function used in offline (ie non-realtime) verification
 
@@ -51,6 +52,8 @@ std::vector<int> queryDatabasePose(Mat curr, std::vector<Mat> comparison_images)
     std::vector<int> index_of_nearest_neighbor;
     int dark_threshold = 180;
     for (int q = 0; q < comparison_images.size(); q++) {
+        std::cerr << "Comparing to comparison image: " << q;
+
         int running_total_hamming_dist = 0;
         for (int i = 0; i < curr.rows; ++i) {
             uchar *current_pixel = curr.ptr<uchar>(i);
@@ -79,7 +82,7 @@ std::vector<int> queryDatabasePose(Mat curr, std::vector<Mat> comparison_images)
                     running_total_hamming_dist += (int) color_delta;
                 }
             }
-            std::cerr << "running total of this row #" << i << ": " << running_total_hamming_dist << " on image " << q << "\n";
+            //std::cerr << "running total of this row #" << i << ": " << running_total_hamming_dist << " on image " << q << "\n";
         }
 
         addToNearestNeighbor(running_total_hamming_dist, q, index_of_nearest_neighbor, dist_to_nearest_neighbor);
@@ -87,6 +90,7 @@ std::vector<int> queryDatabasePose(Mat curr, std::vector<Mat> comparison_images)
     }
     return index_of_nearest_neighbor;
 }
+
 /*
         //Find smallest color difference
         int indexOfClosestColor = -1;

@@ -22,6 +22,8 @@ struct arguments {
     bool headless_mode;
     bool generate_search_set_mode;
     bool display_input_images;
+    bool lookup_db;
+        
     int video_capture_device;
     int num_glove_colors;
 

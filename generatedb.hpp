@@ -13,7 +13,7 @@ class GenerateDb {
 public:
     GenerateDb();
     virtual ~GenerateDb();
-    void Setup(GloveRenderer* render, string target_directory);
+    void Setup(GloveRenderer* render, string target_directory, struct arguments args);
 
     // Returns a FullHandPoseObject min_pose incremented by incremental_pose.
     // Populates manifest object
@@ -35,6 +35,7 @@ private:
 
     string GenerateFilename(string target_directory, int index, int padding_zeroes);
     string GenerateTimestamp();
+    struct arguments args;
 };
 
 #endif

@@ -67,13 +67,6 @@ Mat GloveTrack::Normalize(Mat unnormalized_image) {
     resize(frame, normalized_frame, normalized_frame.size(), 0, 0, INTER_LINEAR);
     frame = normalized_frame;
 
-    //If in interactive mode, stretch image for display/demonstration purposes
-    if (args.headless_mode == false) {
-        Mat display_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
-        resize(frame, display_frame, display_frame.size(), 0, 0, INTER_LINEAR);
-        frame = display_frame;
-    }
-
     return (frame);
 }
 

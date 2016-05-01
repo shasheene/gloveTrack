@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     args.headless_mode = false;
     args.generate_search_set_mode = false;
     args.display_input_images = false;
+    args.lookup_db = false;
     args.input_video_file = NULL;
     args.video_capture_device = -1;
 
@@ -67,7 +68,7 @@ int runMain(struct arguments args) {
     searchSetManifest.LoadManifest(args.search_set_manifest);
 
     Manifest generated_db_manifest;
-    
+
     namedWindow("gloveTrack", WINDOW_AUTOSIZE);
 
     //Current glove colors - manually picked from test1.jpg camera image
@@ -127,7 +128,7 @@ int runMain(struct arguments args) {
         FullHandPose clenched_fist = glove_renderer.LoadFullHandPose("../../libhand/poses/clenched_fist.yml");
 
         GenerateDb generate_db;
-        generate_db.Setup(&glove_renderer, "db/generated_fun");
+        generate_db.Setup(&glove_renderer, "db/generated_fun", args);
         Mat frame;
 
 
@@ -143,12 +144,18 @@ int runMain(struct arguments args) {
             try {
                 SPDLOG_TRACE(console, "Running EM on query image");
                 vector<int> closest_match = glove_track.GetHandPose(evaluationSetManifest.unnormalized_images.at(i));
-                imshow("gloveTrack", glove_track.GetLastNormalizedImage());
+                Mat display_frame = glove_track.GetLastNormalizedImage();
+                //If in interactive mode, stretch image for display/demonstration purposes
+                if (args.headless_mode == false) {
+                    display_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
+                    resize(display_frame, display_frame, display_frame.size(), 0, 0, INTER_LINEAR);
+                }
+                imshow("gloveTrack", display_frame);
                 waitKey(0);
             } catch (...) {
                 SPDLOG_TRACE(console, "OpenCV displaying image of size 0");
             }
-            
+
             if (args.save_normalized_images == true) {
                 vector<int> param = vector<int>(CV_IMWRITE_PNG_COMPRESSION, 0);
                 std::stringstream ss;
@@ -184,19 +191,25 @@ int runMain(struct arguments args) {
             Mat frame = captureFrame(capture_device);
 
             vector<int> closest_match = glove_track.GetHandPose(frame);
+            Mat normalized = glove_track.GetLastNormalizedImage();
+            Mat display_frame = normalized;
             if (args.headless_mode == false) {
-                imshow("gloveTrack", glove_track.GetLastNormalizedImage());
-
-                //If in interactive mode, display raw input frame for display/demonstration purposes
-                if (args.display_input_images == true) {
-                    // Displays unprocessed input frame
-                    namedWindow("input frame", WINDOW_NORMAL);
-                    imshow("input frame", frame);
+                if (args.headless_mode == false) {
+                    display_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
+                    resize(normalized, display_frame, display_frame.size(), 0, 0, INTER_LINEAR);
+                }
+                imshow("gloveTrack", display_frame);
+                // imshow requires use waitKey(n) to display frame for n milliseconds
+                waitKey(1);
+                if (args.lookup_db) {
+                    std::cerr << "Searching database of size " << generated_db_manifest.labelled_images.size() << std::endl;
+                    vector<int> matches = queryDatabasePose(frame, generated_db_manifest.labelled_images);
+                    for (int i = 0; i < matches.size(); i++) {
+                        std::cout << matches.at(i) << ",";
+                    }
+                    std::cout << std::endl;
                 }
             }
-
-            // imshow requires use waitKey(n) to display frame for n milliseconds
-            waitKey(1);
 
             t = ((double) getTickCount() - t) / getTickFrequency();
             SPDLOG_TRACE(console, "Times passed in seconds {}", t);

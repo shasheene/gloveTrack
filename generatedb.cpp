@@ -17,9 +17,10 @@ GenerateDb::~GenerateDb() {
 
 }
 
-void GenerateDb::Setup(GloveRenderer* renderer, string target_directory2) {
+void GenerateDb::Setup(GloveRenderer* renderer, string target_directory2, struct arguments args2) {
     glove_renderer = renderer;
     target_directory = target_directory2;
+    args = args2;
 }
 
 void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_angle, FullHandPose min_pose, FullHandPose max_pose, Manifest &manifest, GloveTrack glove_track) {
@@ -61,9 +62,15 @@ void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_ang
                 SPDLOG_TRACE(console, "Running EM on query image");
                 glove_track.GetHandPose(pic);
                 Mat labelled = glove_track.GetLastNormalizedImage();
-                manifest.labelled_images.push_back(labelled.clone());
-                imshow("Labelled images of generated poses (not fully calibrated model)", labelled);
+                manifest.labelled_images.push_back(labelled.clone()); 
+                Mat display_labelled;
+                if (args.headless_mode == false) {
+                    display_labelled = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
+                    resize(labelled, display_labelled, display_labelled.size(), 0, 0, INTER_LINEAR);
+                }
+                imshow("Labelled images of generated poses (not fully calibrated model)", display_labelled);
 
+                
                 waitKey(4);
             } catch (...) {
                 SPDLOG_TRACE(console, "OpenCV displaying image of size 0");

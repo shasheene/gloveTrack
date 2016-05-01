@@ -21,6 +21,7 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
         {"headless-mode", no_argument, 0, 0},
         {"generate-search-set-mode", no_argument, 0, 0},
         {"display-input-images", no_argument, 0, 'd'},
+        {"lookup-db", no_argument, 0, 'l'},
         {"save-normalized-images", no_argument, 0, 's'},
         {"training-set-manifest", required_argument, 0, 0},
         {"evaluation-set-manifest", required_argument, 0, 0},
@@ -61,6 +62,8 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                     args.generate_search_set_mode = true;
                 } else if (0 == strcmp("display-input-images", long_option)) {
                     args.display_input_images = true;
+                } else if (0 == strcmp("lookup-db", long_option)) {
+                    args.lookup_db = true;
                 } else if (0 == strcmp("training-set-manifest", long_option)) {
                     args.training_set_manifest = strdup(optarg);
                 } else if (0 == strcmp("evaluation-set-manifest", long_option)) {
@@ -106,6 +109,7 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 std::cout << "   -c,--capture-device=INDEX          Select video capture device (eg, built-in webcam might be 0)" << std::endl;
                 std::cout << "   -h,--headless-mode                 Don't display processing on-screen" << std::endl;
                 std::cout << "   -d,--display-input-images          Displays raw input frames on screen as processing takes place" << std::endl;
+                std::cout << "   -l,--lookup-db                     Search database to find closest match of input images (currently non-realtime)" << std::endl;
 
                 std::cout << "      --training-set-manifest=FILE    Manifest file detailing the labelled and unlabelled images for 'supervised' training of the statistical model" << std::endl;
                 std::cout << "      --evaluation-set-manifest=FILE  Manifest file detailing the raw images for offline (non live-camera) processing, for demonstration and development (Cannot be used with -c)" << std::endl;
@@ -139,6 +143,9 @@ void parseCommandLineArgs(int argc, char** argv, struct arguments &args) {
                 break;
             case 's':
                 args.save_normalized_images = true;
+                break;
+            case 'l':
+                args.lookup_db = true;
                 break;
             case 'v':
                 std::cout << "gloveTrack" << " Version " << Glovetrack_VERSION_MAJOR << "." << Glovetrack_VERSION_MINOR << std::endl;
