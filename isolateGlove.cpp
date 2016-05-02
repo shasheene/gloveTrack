@@ -33,7 +33,7 @@ Mat GloveTrack::Normalize(Mat unnormalized_image) {
     Mat frame = unnormalized_image;
     //A camera input of 2000x2000 needs more cycles to process, so shrink for performance closer to real-time on target systems
     Mat processing_frame = Mat::zeros(args.processing_width, args.processing_height, CV_8UC3);
-    resize(frame, processing_frame, processing_frame.size(), 0, 0, INTER_LINEAR);
+    resize(frame, processing_frame, processing_frame.size(), 0, 0, INTER_NEAREST);
     frame = processing_frame;
 
     SPDLOG_TRACE(spdlog::get("console"), "Bilateral filter to smooth sensor noise (by slight image bluring)");
@@ -52,9 +52,8 @@ Mat GloveTrack::Normalize(Mat unnormalized_image) {
     ClassifyColors(frame, sample_array, classified_frame);
     SPDLOG_TRACE(spdlog::get("console"), "EM Classification Complete");
     frame = classified_frame;
-
     Mat pre_crop_frame = Mat::zeros(args.pre_crop_width, args.pre_crop_height, CV_8UC3);
-    resize(frame, pre_crop_frame, pre_crop_frame.size(), 0, 0, INTER_LINEAR);
+    resize(frame, pre_crop_frame, pre_crop_frame.size(), 0, 0, INTER_NEAREST);
     Mat cropped_frame = meanShiftCrop(pre_crop_frame, 20, 0, args);
     frame = cropped_frame;
 
@@ -64,7 +63,7 @@ Mat GloveTrack::Normalize(Mat unnormalized_image) {
 
     // Resize it to search query (resize will most likely shrink image)
     Mat normalized_frame = Mat::zeros(args.normalized_width, args.normalized_height, CV_8UC3);
-    resize(frame, normalized_frame, normalized_frame.size(), 0, 0, INTER_LINEAR);
+    resize(frame, normalized_frame, normalized_frame.size(), 0, 0, INTER_NEAREST);
     frame = normalized_frame;
 
     return (frame);
@@ -310,7 +309,7 @@ Mat getSquareImage(const Mat& img, int target_width) {
         roi.x = (target_width - roi.width) / 2;
     }
 
-    resize(img, square(roi), roi.size());
+    resize(img, square(roi), roi.size(), INTER_NEAREST);
 
     return square;
 }

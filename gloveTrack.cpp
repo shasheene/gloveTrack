@@ -148,7 +148,7 @@ int runMain(struct arguments args) {
                 //If in interactive mode, stretch image for display/demonstration purposes
                 if (args.headless_mode == false) {
                     display_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
-                    resize(display_frame, display_frame, display_frame.size(), 0, 0, INTER_LINEAR);
+                    resize(display_frame, display_frame, display_frame.size(), 0, 0, INTER_NEAREST);
                 }
                 imshow("gloveTrack", display_frame);
                 waitKey(0);
@@ -196,18 +196,30 @@ int runMain(struct arguments args) {
             if (args.headless_mode == false) {
                 if (args.headless_mode == false) {
                     display_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
-                    resize(normalized, display_frame, display_frame.size(), 0, 0, INTER_LINEAR);
+                    resize(normalized, display_frame, display_frame.size(), 0, 0, INTER_NEAREST);
                 }
                 imshow("gloveTrack", display_frame);
-                // imshow requires use waitKey(n) to display frame for n milliseconds
                 waitKey(1);
+                // imshow requires use waitKey(n) to display frame for n milliseconds
+
                 if (args.lookup_db) {
                     std::cerr << "Searching database of size " << generated_db_manifest.labelled_images.size() << std::endl;
-                    vector<int> matches = queryDatabasePose(frame, generated_db_manifest.labelled_images);
+                    unsigned char normalizedFrameIndiciesOnly[50][50];
+                    convertNormalizedMatToIndexArray(display_frame, classification_color, normalizedFrameIndiciesOnly);
+
+                    //make not hardcoded size
+                    /*for (int i = 0; i < 50; i++) {
+                        for (int j = 0; j < 50; j++) {
+                            printf("%02d ",onlyWhatMatters[i][j]);
+                        }
+                        std::cout << std::endl;
+                    }*/
+
+                    /*vector<int> matches = queryDatabasePose(frame, generated_db_manifest.labelled_images);
                     for (int i = 0; i < matches.size(); i++) {
                         std::cout << matches.at(i) << ",";
                     }
-                    std::cout << std::endl;
+                    std::cout << std::endl;*/
                 }
             }
 

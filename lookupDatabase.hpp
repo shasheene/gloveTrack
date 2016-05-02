@@ -41,6 +41,12 @@ private:
 };
 
 std::vector<int> queryDatabasePose(Mat isolated_frame, std::vector<Mat> comparison_images);
-
+/**
+ * Extremely quick and dirty function which takes in normalized matrix and fills the output with 
+ * the index to classification color.
+ * 
+ * For GPU accelearation (compare one uchar[50][50] to even millions in database)
+ */
+void convertNormalizedMatToIndexArray(Mat curr, Scalar glove_colors[NUMGLOVECOLORS], unsigned char output[50][50]);
 std::string concatStringInt(std::string part1, int part2); //Pre-C++11 standard doesn't have string class concat, atoi not standardized
 #endif // LOOKUPDATABASE_H

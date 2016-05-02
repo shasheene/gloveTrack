@@ -66,7 +66,7 @@ void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_ang
                 Mat display_labelled;
                 if (args.headless_mode == false) {
                     display_labelled = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
-                    resize(labelled, display_labelled, display_labelled.size(), 0, 0, INTER_LINEAR);
+                    resize(labelled, display_labelled, display_labelled.size(), 0, 0, INTER_NEAREST);
                 }
                 imshow("Labelled images of generated poses (not fully calibrated model)", display_labelled);
 

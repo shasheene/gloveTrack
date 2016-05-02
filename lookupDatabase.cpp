@@ -1,4 +1,5 @@
 #include "lookupDatabase.hpp"
+#include <map>
 
 LookupDb::LookupDb() {
 
@@ -42,6 +43,27 @@ void addToNearestNeighbor(int euclidian_dist, int index_of_candidate,
     if (dist_to_nearest_neighbor.size() == 0 || inserted == false) {
         dist_to_nearest_neighbor.push_back(euclidian_dist);
         index_of_nearest_neighbor.push_back(index_of_candidate);
+    }
+}
+
+//temp helper. replace with lookup table
+int matching(unsigned char pixel[3],  Scalar glove_colors[NUMGLOVECOLORS]) {
+    for (int i=0; i<NUMGLOVECOLORS;i++) {
+        unsigned char glove[3] = {(uchar)glove_colors[i][0], (uchar)glove_colors[i][1], (uchar)glove_colors[i][2]};
+        if (glove[0]==pixel[0] && glove[1]==pixel[1] && glove[2]==pixel[2]) {
+            return i;
+        }
+    }
+    std::cout << "Pixel not in classification_colors array. Perhaps resized with wrong interpolation" << std::endl;
+    exit(0);
+}
+
+void convertNormalizedMatToIndexArray(Mat curr, Scalar glove_colors[NUMGLOVECOLORS], unsigned char output[50][50]) {
+    for (int i = 0; i < curr.rows; i++) {
+        for (int j = 0; j < curr.cols * 3; j=j+3) {
+            unsigned char lookup[3] = {curr.ptr<uchar>(i)[j], curr.ptr<uchar>(i)[j+1], curr.ptr<uchar>(i)[j+2]};
+            output[i][j] = (unsigned char) matching(lookup, glove_colors);
+        }
     }
 }
 
