@@ -199,6 +199,11 @@ int runMain(struct arguments args) {
                     resize(normalized, display_frame, display_frame.size(), 0, 0, INTER_NEAREST);
                 }
                 imshow("gloveTrack", display_frame);
+                if (args.display_input_images==true) {
+                    Mat resized_input_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
+                    resize(frame, resized_input_frame, resized_input_frame.size(), 0, 0, INTER_NEAREST);
+                    imshow("inputimages", resized_input_frame);
+                }
                 waitKey(1);
                 // imshow requires use waitKey(n) to display frame for n milliseconds
 
