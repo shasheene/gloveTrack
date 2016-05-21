@@ -32,7 +32,7 @@ void GloveRenderer::Setup(string scene_spec_filename) {
     // LibHand uses a "RAII" pattern to provide for a clean shutdown in
     // case of any errors.
     try {
-        glove_renderer.Setup();
+      glove_renderer.Setup((int) glove_renderer.kDefaultWidth, (int)glove_renderer.kDefaultHeight, (string)"libhand/resources/plugins_cfg/plugins.cfg");
 
         // Process the scene spec file
         scene_spec = SceneSpec(scene_spec_filename);

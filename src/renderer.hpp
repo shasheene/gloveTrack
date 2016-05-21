@@ -2,15 +2,15 @@
 #define RENDERER_HPP
 
 // We need the HandPose data structure
-#include "include/libhand/hand_pose.h"
+#include "hand_pose.h"
 
 // ..the HandRenderer class which is used to render a hand
-#include "include/libhand/hand_renderer.h"
+#include "hand_renderer.h"
 
 // ..and SceneSpec which tells us where the hand 3D scene data
 // is located on disk, and how the hand 3D object relates to our
 // model of joints.
-#include "include/libhand/scene_spec.h"
+#include "scene_spec.h"
 
 // Don't forget to mention the libhand namespace
 using namespace libhand;

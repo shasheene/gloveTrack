@@ -1,3 +1,6 @@
-[submodule "db3"]
+[submodule "db"]
 	path = db
 	url = https://github.com/shasheene/gloveTrack-database.git
+[submodule "third-party/libhand"]
+	path = third-party/libhand
+	url = https://github.com/shasheene/libhand
