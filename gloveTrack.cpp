@@ -183,7 +183,7 @@ int runMain(struct arguments args) {
             console->info("Unable to open video capture device. Quitting");
             exit(1);
         }
-
+                    namedWindow("estimate", WINDOW_AUTOSIZE);
         while (true) {
             //fps calculation
             double t = (double) getTickCount();
@@ -210,7 +210,7 @@ int runMain(struct arguments args) {
                 if (args.lookup_db) {
                     std::cerr << "Searching database of size " << generated_db_manifest.labelled_images.size() << std::endl;
                     unsigned char normalizedFrameIndiciesOnly[50][50];
-                    convertNormalizedMatToIndexArray(display_frame, classification_color, normalizedFrameIndiciesOnly);
+                    //convertNormalizedMatToIndexArray(display_frame, classification_color, normalizedFrameIndiciesOnly);
 
                     //make not hardcoded size
                     /*for (int i = 0; i < 50; i++) {
@@ -219,12 +219,21 @@ int runMain(struct arguments args) {
                         }
                         std::cout << std::endl;
                     }*/
-
-                    /*vector<int> matches = queryDatabasePose(frame, generated_db_manifest.labelled_images);
+                    
+                    vector<struct dbElement*> matches = queryDatabasePose(frame, generated_db_manifest.labelled_images);
                     for (int i = 0; i < matches.size(); i++) {
-                        std::cout << matches.at(i) << ",";
+                        std::cout << matches.at(i)->index << "(dist=" << matches.at(i)->distance_metric << "), ";
+                                                
                     }
-                    std::cout << std::endl;*/
+                    std::cout << std::endl;
+                    
+                    Mat closest = generated_db_manifest.labelled_images.at(matches.at(0)->index);
+                    Mat resized_closest_frame = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
+                    resize(closest, resized_closest_frame, resized_closest_frame.size(), 0, 0, INTER_NEAREST);
+                    imshow("estimate",resized_closest_frame);
+                    for (int i = 0; i < matches.size(); i++) {
+                        free(matches.at(i));
+                    }
                 }
             }
 

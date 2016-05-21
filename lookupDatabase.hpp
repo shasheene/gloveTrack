@@ -35,12 +35,17 @@ private:
     vector<int> ComputeBinaryCode(Mat normalized_image);
     vector<int> DoHammingDistanceComparison(vector<int> binary_string_to_lookup);
 
-
     void AddToNearestNeighbor(int euclidian_dist, int index_of_candidate,
             std::vector<int> &index_of_nearest_neighbor, std::vector<int> &dist_to_nearest_neighbor);
 };
 
-std::vector<int> queryDatabasePose(Mat isolated_frame, std::vector<Mat> comparison_images);
+struct dbElement {
+    int index;
+    int distance_metric;
+};
+
+//TODO(shasheene@gmail.com): Refactor as LookupDb method and overhall implementation
+std::vector<struct dbElement*> queryDatabasePose(Mat isolated_frame, std::vector<Mat> comparison_images);
 /**
  * Extremely quick and dirty function which takes in normalized matrix and fills the output with 
  * the index to classification color.

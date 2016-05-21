@@ -56,13 +56,15 @@ void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_ang
             //TODO(shasheene@gmail.com): Fix exception handling here
             try {
                 Mat pic = glove_renderer->Render(min_pose, modified_camera_spec);
-                //manifest.unnormalized_images.push_back(pic.clone());
+                // Cloning adds latency (for a set of images we're currently not using)
+                manifest.unnormalized_images.push_back(pic.clone());
                 cv::imshow("Generated hand pose database entry", pic);
                 
                 SPDLOG_TRACE(console, "Running EM on query image");
                 glove_track.GetHandPose(pic);
                 Mat labelled = glove_track.GetLastNormalizedImage();
                 manifest.labelled_images.push_back(labelled.clone()); 
+
                 Mat display_labelled;
                 if (args.headless_mode == false) {
                     display_labelled = Mat::zeros(args.display_width, args.display_height, CV_8UC3);
@@ -76,8 +78,7 @@ void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_ang
                 SPDLOG_TRACE(console, "OpenCV displaying image of size 0");
             }
 
-
-            // Needs this to render
+            //TODO(shasheene@gmail.com): Find way block until rendered rather than wait 4ms
             waitKey(4);
         }
     }
