@@ -15,8 +15,6 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIR})
 include_directories("${HAND_LIB_API_DIR}")
 
-#include(ExternalProject)
-#ExternalProject_Get_Property(LibHand HAND_LIB_DIST_DIR)
 set(LibHand_DIR "${HAND_LIB_DIST_DIR}")
 
 list(APPEND CMAKE_MODULE_PATH "${HAND_LIB_DIST_DIR}")

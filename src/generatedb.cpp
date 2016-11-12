@@ -73,7 +73,7 @@ void GenerateDb::interpolate(int num_camera_angles, int num_poses_per_camera_ang
                 imshow("Labelled images of generated poses (not fully calibrated model)", display_labelled);
 
                 
-                waitKey(4);
+                waitKey();
             } catch (...) {
                 SPDLOG_TRACE(console, "OpenCV displaying image of size 0");
             }

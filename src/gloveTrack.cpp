@@ -120,19 +120,19 @@ int runMain(struct arguments args) {
 
         // Render (cycles through all images, SAVES png file to disk, but keeps filling manifest in memory)
         GloveRenderer glove_renderer;
-        glove_renderer.Setup("../../libhand/blender/scene_spec.yml");
+        glove_renderer.Setup("../../libhand/hand_model/scene_spec.yml");
 
         FullHandPose hand_pose = FullHandPose(glove_renderer.GetSceneSpec().num_bones());
         hand_pose.Load("../../libhand/poses/relaxed2.yml", glove_renderer.GetSceneSpec());
         FullHandPose high_five = glove_renderer.LoadFullHandPose("../../libhand/poses/high_five.yml");
-        FullHandPose clenched_fist = glove_renderer.LoadFullHandPose("../../libhand/poses/clenched_fist.yml");
+        FullHandPose fist = glove_renderer.LoadFullHandPose("../../libhand/poses/fist.yml");
 
         GenerateDb generate_db;
         generate_db.Setup(&glove_renderer, "db/generated_fun", args);
         Mat frame;
 
 
-        generate_db.interpolate(10, 10, high_five, clenched_fist, generated_db_manifest, glove_track);
+        generate_db.interpolate(10, 10, high_five, fist, generated_db_manifest, glove_track);
         // Generate binary string
     }
 
@@ -204,7 +204,7 @@ int runMain(struct arguments args) {
                     resize(frame, resized_input_frame, resized_input_frame.size(), 0, 0, INTER_NEAREST);
                     imshow("inputimages", resized_input_frame);
                 }
-                waitKey(1);
+                waitKey(100);
                 // imshow requires use waitKey(n) to display frame for n milliseconds
 
                 if (args.lookup_db) {
