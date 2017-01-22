@@ -1,6 +1,10 @@
 gloveTrack
 ==========
 
+<a href="docs/images/actual_webcam_frame.png"><img height=200 width=200 src="docs/images/actual_webcam_frame.png"></a>
+<a href="docs/images/actual_normalized_frame.png"><img height=200 width=200 src="docs/images/actual_normalized_frame.png"></a>
+<a href="hypothetical_match.png"><img height=200 width=200 src="docs/images/hypothetical_match.png"></a>
+
 gloveTrack is a free, libre and open source hand tracking system intended for (eventual) use with Virtual Reality headsets.
 
 gloveTrack lets your hands enter computer games (and other 3D rendered environments) to interact with objects, requiring only common household items for this to occur: a camera, latex gloves and some colored whiteboard markers.
