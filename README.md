@@ -5,13 +5,34 @@ gloveTrack
 <a href="docs/images/actual_normalized_frame.png"><img height=200 width=200 src="docs/images/actual_normalized_frame.png"></a>
 <a href="hypothetical_match.png"><img height=200 width=200 src="docs/images/hypothetical_match.png"></a>
 
-gloveTrack is a free, libre and open source hand tracking system intended for (eventual) use with Virtual Reality headsets.
+gloveTrack is a free, libre and open source hand tracking system intended for (eventual) use with Virtual Reality headsets. Currently key portions are implemented, but the important functionality such as full lookup (and non-manual image normalisation training) is still unimplemented, limiting its applications.
 
-gloveTrack lets your hands enter computer games (and other 3D rendered environments) to interact with objects, requiring only common household items for this to occur: a camera, latex gloves and some colored whiteboard markers.
+gloveTrack intends to let your hands enter computer games (and other 3D rendered environments) to interact with objects, requiring only common household items for this to occur: a camera, latex gloves and some colored whiteboard markers.
 
 gloveTrack is an implementation of most of the techniques described in Robert Y. Yang's 2009 research paper ["Real-Time Hand-Tracking with a Color Glove"](http://people.csail.mit.edu/rywang/handtracking/s09-hand-tracking.pdf).
 
 Contributions are highly welcome.
+
+### TODO
+gloveTrack is developed as a side-project for fun, with minimal deadlines to help further develop personal software development skills. As gloveTrack matures with reliabilty and dependability becoming the top priority, more rigor will be placed on development (rather being more of a sandbox for OpenCV experiments and prototypes).
+
+Here are some key items on gloveTrack the TODO list:
+
+[ ] Write accelerated search algorithm with unit tests (see research paper)
+
+[ ] Generate set of (100,000) handpose images covering the human handpose space (currently testing with 100 image subset)
+
+[ ] Render the generated handpose estimate using LibHand
+
+[ ] Polish command line arguments (and replace getopt() with Boost)
+
+[ ] Automated training of image normalization model (stretch goal) 
+
+Related to the development of gloveTrack is the enhancement of Marin Saric's LibHand:
+
+[ ] Enhance LibHand to allow rendering at arbitrary x, y co-ordinates (currently limited to camera on surface of sphere)
+
+[ ] Move away from OGRE3D to more suitable cross-platform rendering library
 
 ### Physical dependencies
 - Video source with accurate color representation (most webcams should be fine, or smartphone connected as USB camera)
@@ -30,6 +51,10 @@ gloveTrack was developed against software dependencies
 	- [Tcl/Tk](https://en.wikipedia.org/wiki/Tcl) (likely v8.5.y)
 	- [CMake](https://en.wikipedia.org/wiki/CMake) v2.8.6
 - Git Large File Storage (LFS) v1.5.5
+
+### Supported Platforms
+
+While gloveTrack and dependencies are cross-platform, development takes place on Debian so satisfying the dependencies on Ubuntu-derived Linux distributions is just apt-get away. Unfortunately LibHand's OGRE dependency makes satisfying dependencies on macOS and Windows much more time consuming (see LibHand's README.md for more details), so it's not worth pursuing those platforms at this stage. Future versions of LibHand will allow gloveTrack to expands its officially supported platforms.
 
 #### Satisfying software dependencies under Debian/Ubuntu
 ```bash
@@ -68,7 +93,6 @@ cd build
 
 cmake ..
 make
-`
 ```
 
 ### Example usage:
